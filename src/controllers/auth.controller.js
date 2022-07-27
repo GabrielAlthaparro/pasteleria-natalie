@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 // const config = require('../config');
 
 const authController = {
-    signin: (req, res) => {
+    signin: async (req, res) => {
         const { password } = req.body;
 
         conexion.query(`
@@ -12,7 +12,7 @@ const authController = {
             `, async(err, rows, fields) => {
             if (err) throw err;
 
-            if (comparePassword(password, rows[0].password)) {
+            if (await comparePassword(password, rows[0].password)) {
 
                 const token = jwt.sign({ id: rows[0].mail }, "secretWord", {
                     expiresIn: 86400 //24 hs
@@ -50,6 +50,7 @@ const authController = {
 // }
 
 async function comparePassword(password, receivedPassword) {
+
     return await bcrypt.compare(password, receivedPassword);
    
 }

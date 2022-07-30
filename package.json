@@ -1,7 +1,7 @@
 {
   "name": "pasteleria-natalie",
   "version": "1.0.0",
-  "main": "src/app.js",
+  "main": "app.js",
   "scripts": {
     "start": "src/app",
     "test": "echo \"Error: no test specified\" && exit 1",

@@ -2,6 +2,7 @@ const { request, response } = require("express");
 
 const validateReqFilesNotEmpty = (param) => {
   return (req = request, res = response, next) => {
+    console.log(req.files);
     const { files = [] } = req;
     if (files.length === 0) {
       const msg = {

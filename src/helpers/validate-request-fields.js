@@ -9,30 +9,47 @@ const validateRequestFields = (req = request, res = response, next) => {
         type: 'red'
       },
       param,
+      location
     }
     return format;
   };
 
   const expressValidatorResult = validationResult(req).formatWith(errorFormatter);
-  const { customErrors = null } = req;
+  const { customError } = req;
 
-  if (!expressValidatorResult.isEmpty() || customErrors !== null) {
+  if (!expressValidatorResult.isEmpty() || customError !== null) {
+    const expressValidatorErrors = expressValidatorResult.array(); // si no hay errores, []
 
-    let errors;
-    if (customErrors !== null) {
-      errors = [
-        ...expressValidatorResult.array(),
-        ...customErrors
-      ];
+    if (customError === null) {
+      res.status(400).json(expressValidatorErrors);
     } else {
-      errors = expressValidatorResult.array();
+
+      const { status } = customError;
+      if (status === 500) {
+        const { msg } = customError;
+        res.status(500).json({ msg });
+      } else {
+
+        const { errors: customErrors } = customError;
+        const requestErrors = [
+          ...expressValidatorErrors,
+          ...customErrors
+        ];
+        res.status(status || 400).json(requestErrors);
+      }
     }
-    res.status(400).json(errors);
 
     const { con } = req;
-    con.release();
+    try {
+      con.release();
+    } catch (err) {
+      console.log('Error al liberar la conexión');
+      console.log(err);
+    }
     return;
   }
+
+  // si no hubo ningun tipo de error en las validaciones
   req.routedOk = true;
   next();
 }

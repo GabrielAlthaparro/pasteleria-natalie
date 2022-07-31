@@ -4,7 +4,7 @@ const multer = require('multer')
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const { body, param } = require('express-validator');
+const { header, param, body } = require('express-validator');
 
 const { validateReqFilesField } = require('../middlewares/validate-req-files-field');
 
@@ -17,6 +17,7 @@ const {
   updateProduct,
   deleteProduct
 } = require('../controllers/products.controller');
+const { validateJWT } = require('../middlewares/validate-jwt');
 
 const router = Router();
 
@@ -37,6 +38,10 @@ router.get('/', [
 ], getProducts);
 
 router.post('/', [
+  header('token', 'Token no enviado')
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString()),
+  validateJWT,
   upload.array('imagenes'), // aca se cargan los campos de texto también
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
@@ -60,9 +65,21 @@ router.post('/', [
 ], createProduct);
 
 router.put('/:id', [
-  param('id', 'ID inválido')
+  header('token', 'Token no enviado')
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString()),
+  validateJWT,
+
+  validateRequestFields
 ], updateProduct);
 
-router.delete('/:id', [], deleteProduct);
+router.delete('/:id', [
+  header('token', 'Token no enviado')
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString()),
+  validateJWT,
+
+  validateRequestFields
+], deleteProduct);
 
 module.exports = router;

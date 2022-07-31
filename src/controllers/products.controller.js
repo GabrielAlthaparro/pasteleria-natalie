@@ -118,6 +118,7 @@ const createProduct = async (req = request, res = response, next) => {
     const { affectedRows } = updateResults;
     if (affectedRows === 0) throw 'Error al agregar el nombre de la foto a la db';
 
+    const imagenesProducto = [];
     // TABLA IMAGENES
     const queryImages = 'INSERT INTO `imagenes` (id_producto, path) VALUES (?, ?)';
     for (const secondaryImg of files) {
@@ -131,20 +132,38 @@ const createProduct = async (req = request, res = response, next) => {
 
       const paramsImages = [idProducto, pathImgSecondary];
       const [results] = await con.execute(queryImages, paramsImages);
-      const { affectedRows } = results;
+      const { insertId: id, affectedRows } = results;
       if (affectedRows === 0) throw `Error al guardar path de img secundaria ${originalname} en db`;
+
+      imagenesProducto.push({ id, path: pathImgSecondary })
     }
 
     // SI SE EJECUTO TODO SIN DISPARAR ERRORES
     await con.commit();
 
-    res.json({ msg: `Producto registrado con el id ${idProducto}` })
+    res.json({
+      msg: {
+        text: 'Producto registrado correctamente',
+        type: 'green'
+      },
+      producto: {
+        id: idProducto,
+        nombre,
+        descripcion,
+        idTipo: tipo,
+        tipo: (await con.execute(`SELECT descripcion FROM tipos WHERE id = ?`, [tipo]))[0][0].descripcion,
+        cantidadConsultas: 0,
+        imagen: pathImgPrincipal,
+        imagenes: imagenesProducto
+      }
+    });
 
   } catch (err) {
-    res.status(500).json({
-      msg: 'Error al crear el producto, intente nuevamente'
-    })
     console.log(err);
+    res.status(500).json({
+      msg: 'Error al crear el producto, intente nuevamente',
+      type: 'red'
+    })
     try {
       await con.rollback();
     } catch (err) {
@@ -165,14 +184,16 @@ const createProduct = async (req = request, res = response, next) => {
   next();
 };
 
-const updateProduct = (req = request, res = response) => {
-  console.log('update (put)');
-  res.end();
+const updateProduct = (req = request, res = response, next) => {
+  console.log('update');
+  res.json({ msg: 'update' });
+  next();
 };
 
-const deleteProduct = (req = request, res = response) => {
+const deleteProduct = (req = request, res = response, next) => {
   console.log('delete');
-  res.end();
+  res.json({ msg: 'delete' })
+  next();
 };
 
 module.exports = {

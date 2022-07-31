@@ -5,6 +5,7 @@ const startRequest = async (req = request, res = response, next) => {
     const con = await pool.getConnection();
     req.con = con;
     req.routedOk = false;
+    req.customError = null;
     next();
   } catch (err) {
     console.log(err);

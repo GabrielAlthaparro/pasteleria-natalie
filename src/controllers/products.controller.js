@@ -7,7 +7,7 @@ const { executeAsyncFunction } = require('../helpers/promises');
 const { getUuidFileName } = require('../helpers/files');
 const { indexArrayToObjectWhitArray } = require('../helpers/indexArray');
 
-const pathToSaveFiles = path.join(__dirname, '../assets/img/');
+const pathToSaveFiles = path.join(process.env.HOST + __dirname, '../assets/img/');
 
 const getProducts = async (req = request, res = response, next) => {
   const {

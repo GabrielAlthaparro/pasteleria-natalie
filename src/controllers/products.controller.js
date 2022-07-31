@@ -40,7 +40,7 @@ const getProducts = async (req = request, res = response, next) => {
     //   con.execute(queryGetProductos, paramsGetProductos)
     // ]);
     const [productsRows] = await con.execute(queryGetProductos, paramsGetProductos);
-    if (productsRows.length === 0) { res.json({}); next(); return; } // no hay productos
+    if (productsRows.length === 0) { res.json(productsRows); next(); return; } // no hay productos
 
     const queryGetImagenes = 'SELECT * FROM `imagenes`';
     const [imagesRows] = await con.execute(queryGetImagenes);
@@ -77,7 +77,7 @@ const createProduct = async (req = request, res = response, next) => {
   const { files } = req;
   const { con } = req;
   let pathToProductImages = null;
-  
+
   try {
     await con.beginTransaction();
 
@@ -185,6 +185,11 @@ const createProduct = async (req = request, res = response, next) => {
 };
 
 const updateProduct = (req = request, res = response, next) => {
+  const { id } = req.params;
+  const { nombre, tipo, descripcion } = req.body;
+  const { files } = req;
+  const { con } = req;
+
   console.log('update');
   res.json({ msg: 'update' });
   next();

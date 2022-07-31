@@ -1,8 +1,8 @@
 const { request, response } = require("express");
 
-const validateReqFilesField = (param, validExtensions) => {
+const validateReqFilesNotEmpty = (param) => {
   return (req = request, res = response, next) => {
-    const { files } = req;
+    const { files = [] } = req;
     if (files.length === 0) {
       const msg = {
         text: 'Ingrese al menos una imágen',
@@ -11,9 +11,14 @@ const validateReqFilesField = (param, validExtensions) => {
       req.customError = {
         errors: [{ msg, param, location: 'body' }]
       }
-      next();
-      return;
     }
+    next();
+  };
+}
+
+const validateReqFilesExtensions = (param, validExtensions) => {
+  return (req = request, res = response, next) => {
+    const { files = [] } = req;
     files.forEach(file => {
       const splitName = file.originalname.split('.');
       const extension = splitName[splitName.length - 1];
@@ -25,7 +30,7 @@ const validateReqFilesField = (param, validExtensions) => {
         }
         const { errors } = req.customError;
         const msg = {
-          text: `La extensión .${extension} no es válida.`,
+          text: `La extensión .${extension} no es válida`,
           type: 'red'
         };
         errors.push({ msg, param, location: 'body' });
@@ -37,5 +42,6 @@ const validateReqFilesField = (param, validExtensions) => {
 }
 
 module.exports = {
-  validateReqFilesField
+  validateReqFilesNotEmpty,
+  validateReqFilesExtensions
 }

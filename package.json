@@ -21,6 +21,7 @@
   "description": "Backend del sistema de panel de pasteleria natalie\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[D\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001badministracion de la pasteleria natalie\u001b[D\u001b[C",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.30.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",

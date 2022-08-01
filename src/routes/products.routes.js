@@ -2,7 +2,7 @@ const { Router } = require('express');
 
 const multer = require('multer')
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ dest: './src/uploads' });
 
 const { header, param, body } = require('express-validator');
 

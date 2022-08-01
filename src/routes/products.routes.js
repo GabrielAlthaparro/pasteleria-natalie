@@ -1,14 +1,15 @@
 const { Router } = require('express');
 
 const multer = require('multer')
-const storage = multer.memoryStorage();
 const upload = multer({ dest: './src/uploads' });
 
 const { header, param, body } = require('express-validator');
 
-
-const { validateReqFilesNotEmpty, validateReqFilesExtensions } = require('../middlewares/validate-req-files')
-const { validateJWT } = require('../middlewares/validate-jwt');
+const {
+  validateReqFilesNotEmpty,
+  validateReqFilesExtensions,
+  validateJWT
+} = require('../middlewares')
 
 const { validTipo } = require('../helpers/db-validators');
 const validateRequestFields = require('../helpers/validate-request-fields');

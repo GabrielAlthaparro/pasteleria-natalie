@@ -6,8 +6,6 @@ cloudinary.config(process.env.CLOUDINARY_URL);
 
 const { request, response } = require('express');
 
-const { executeAsyncFunction } = require('../helpers/promises');
-const { getUuidFileName } = require('../helpers/files');
 const { indexArrayToObjectWhitArray } = require('../helpers/indexArray');
 
 const getProducts = async (req = request, res = response, next) => {

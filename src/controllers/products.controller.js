@@ -23,7 +23,7 @@ const getProducts = async (req = request, res = response, next) => {
   const paramsGetProductos = [];
 
   if (tipo !== null) {
-    queryGetProductos += ' WHERE p.tipo = ?';
+    queryGetProductos += ' WHERE idTipo = ?';
     paramsGetProductos.push(tipo);
   }
   if (limite !== null) {
@@ -42,12 +42,14 @@ const getProducts = async (req = request, res = response, next) => {
     //   pool.execute(queryGetImagenes),
     //   pool.execute(queryGetProductos, paramsGetProductos)
     // ]);
-
     let productos = [];
 
-    const [productsRows] = await con.execute(queryGetProductos, paramsGetProductos);
+    const statement = con.prepare(queryGetProductos);
+    const [productsRows] = await statement.execute(paramsGetProductos);
+    await statement.close();
 
     if (productsRows.length !== 0) { // si hay productos
+      
       const queryGetImagenes = 'SELECT * FROM imagenes';
       const [imagesRows] = await con.execute(queryGetImagenes);
       const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');

@@ -1,19 +1,30 @@
 const mysql = require('mysql2/promise');
 
+const config = {
+  host: process.env.SQL_HOST,
+  user: process.env.SQL_USER,
+  password: process.env.SQL_PASSWORD,
+  database: process.env.SQL_DATABASE,
+  port: process.env.SQL_PORT,
+  charset: 'utf8',
+  waitForConnections: true,
+  connectionLimit: 10,
+};
+
+if (process.env.NODE_ENV === 'production') {
+  config.ssl = {
+    ca: process.env.SQL_SSL_SERVER_CA,
+    key: process.env.SQL_SSL_CLIENT_KEY,
+    cert: process.env.SQL_SSL_CLIENT_CERTIFICATION
+  }
+}
+
 let pool;
+
 const getPool = () => {
   if (!pool) {
-    console.log('Reconectando...');
-    pool = mysql.createPool({
-      host: process.env.SQL_HOST,
-      user: process.env.SQL_USER,
-      password: process.env.SQL_PASSWORD,
-      database: process.env.SQL_DATABASE,
-      port: process.env.SQL_PORT,
-      charset: 'utf8',
-      waitForConnections: true,
-      connectionLimit: 50
-    });
+    console.log('Reconectando la base de datos...');
+    pool = mysql.createPool(config);
 
     pool.on('connection', connection => {
       console.log('Connection %d connected', connection.threadId);

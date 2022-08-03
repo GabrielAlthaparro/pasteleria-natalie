@@ -1,11 +1,11 @@
 {
   "name": "pasteleria-natalie",
   "version": "1.0.0",
-  "main": "src/app.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/app",
+    "start": "node index",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/app"
+    "dev": "nodemon index"
   },
   "repository": {
     "type": "git",

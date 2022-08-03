@@ -3,10 +3,13 @@ const fs = require('fs');
 
 const cloudinary = require('cloudinary').v2;
 cloudinary.config(process.env.CLOUDINARY_URL);
+const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
+// https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
 
 const { request, response } = require('express');
 
 const { indexArrayToObjectWhitArray } = require('../helpers/indexArray');
+const { getImgUrlDB } = require('../helpers/products');
 
 const getProducts = async (req = request, res = response, next) => {
   const {
@@ -16,10 +19,9 @@ const getProducts = async (req = request, res = response, next) => {
   } = req.body;
   const { con } = req;
 
+  let queryGetProductos = 'SELECT * from get_all_products';
   const paramsGetProductos = [];
-  let queryGetProductos = '';
-  queryGetProductos += 'SELECT p.id AS id, nombre, p.descripcion AS descripcion, p.tipo AS idTipo, t.descripcion AS tipo, cantidad_consultas AS cantidadConsultas, imagen';
-  queryGetProductos += ' FROM productos AS p INNER JOIN tipos AS t ON p.tipo = t.id';
+
   if (tipo !== null) {
     queryGetProductos += ' WHERE p.tipo = ?';
     paramsGetProductos.push(tipo);
@@ -33,32 +35,40 @@ const getProducts = async (req = request, res = response, next) => {
     }
   }
   try {
+    // const getPool = req.app.get('getPool');
+    // const pool = getPool();
     // const queryGetImagenes = 'SELECT * FROM `imagenes`';
-    // const [imagesResults, productsResults] = await Promise.all([
-    //   con.execute(queryGetImagenes),
-    //   con.execute(queryGetProductos, paramsGetProductos)
+    // const [[imagesRows], [productsRows]] = await Promise.all([
+    //   pool.execute(queryGetImagenes),
+    //   pool.execute(queryGetProductos, paramsGetProductos)
     // ]);
+
+    let productos = [];
+
     const [productsRows] = await con.execute(queryGetProductos, paramsGetProductos);
-    if (productsRows.length === 0) { res.json(productsRows); next(); return; } // no hay productos
 
-    const queryGetImagenes = 'SELECT * FROM `imagenes`';
-    const [imagesRows] = await con.execute(queryGetImagenes);
+    if (productsRows.length !== 0) { // si hay productos
+      const queryGetImagenes = 'SELECT * FROM imagenes';
+      const [imagesRows] = await con.execute(queryGetImagenes);
+      const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
 
-    const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
 
-    const productos = productsRows.map(producto => {
-      const imagenes = [];
-      if (indexedImages[producto.id] !== undefined) {
-        for (const imagen of indexedImages[producto.id]) {
-          const { id, path } = imagen;
-          imagenes.push({ id, path })
+      productos = productsRows.map(producto => {
+        producto.imagen = urlClodinaryImgs + producto.imagen; // reconstruir url de la imagen de cloudinary
+
+        const imagenes = [];
+        if (indexedImages[producto.id] !== undefined) {
+          for (const imagen of indexedImages[producto.id]) {
+            const { id, path } = imagen;
+            imagenes.push({ id, path: urlClodinaryImgs + path })
+          }
         }
-      }
-      return {
-        ...producto,
-        imagenes
-      };
-    });
+        return {
+          ...producto,
+          imagenes
+        };
+      });
+    }
 
     res.json(productos);
 
@@ -86,38 +96,52 @@ const createProduct = async (req = request, res = response, next) => {
     // TABLA PRODUCTOS
     const imgPrincipal = files.shift();
     const { path: imgPath } = imgPrincipal;
-    const absolutePathImg = path.join(__dirname, '../../', imgPath);
+    const absolutePathImg = path.join(__dirname, '../../', imgPath); // para poder enviar imagen a cloudinary
+
     const { public_id, secure_url: urlImgPrincipal } = await cloudinary.uploader.upload(absolutePathImg, { folder });
     uploadedImages.push(public_id);
-    fs.unlinkSync(absolutePathImg);
+    fs.unlinkSync(absolutePathImg); // borrar buffers temporales de la imagen
 
-    let queryProducto = '';
-    queryProducto += 'INSERT INTO `productos` ';
-    queryProducto += '(`nombre`, `tipo`, `descripcion`, `imagen`) ';
-    queryProducto += 'VALUES (?, ?, ?, ?)';
-    const paramsProducto = [nombre, tipo, descripcion, urlImgPrincipal];
+    const imgPrincipalUrlDB = getImgUrlDB(urlImgPrincipal);
+
+    const queryProducto = 'INSERT INTO `productos` (`nombre`, `tipo`, `descripcion`, `imagen`) VALUES (?, ?, ?, ?)';
+    const paramsProducto = [nombre, tipo, descripcion, imgPrincipalUrlDB];
 
     const [productResults] = await con.execute(queryProducto, paramsProducto);
     const { insertId: idProducto, affectedRows: productAffectedRows } = productResults;
     if (productAffectedRows === 0) throw 'Error al crear registro en la tabla de productos';
 
     // TABLA IMAGENES
-    const imagenesProducto = [];
-    const queryImages = 'INSERT INTO `imagenes` (id_producto, path) VALUES (?, ?)';
+    let imagenesProducto = [];
+    if (files.length !== 0) { // si no se envio ninguna imagen más, ya termine todo, salto a mandar la respuesta
 
-    for (const secondaryImg of files) {
-      const { originalname, path: imgPath } = secondaryImg;
-      const absolutePathImg = path.join(__dirname, '../../', imgPath);
-      const { public_id, secure_url: urlSecondaryImg } = await cloudinary.uploader.upload(absolutePathImg, { folder });
-      uploadedImages.push(public_id);
-      fs.unlinkSync(absolutePathImg);
+      let queryImages = 'INSERT INTO `imagenes` (id_producto, path) VALUES';
+      const paramsImages = [];
 
-      const paramsImages = [idProducto, urlSecondaryImg];
+      for (const secondaryImg of files) {
+        const { path: imgPath } = secondaryImg;
+        const absolutePathImg = path.join(__dirname, '../../', imgPath); // para poder enviar imagen a cloudinary
+
+        const { public_id, secure_url: urlSecondaryImg } = await cloudinary.uploader.upload(absolutePathImg, { folder });
+        uploadedImages.push(public_id);
+        fs.unlinkSync(absolutePathImg); // borrar buffers temporales de la imagen
+
+        const imgSecondaryUrlDB = getImgUrlDB(urlSecondaryImg);
+
+        queryImages += ' (?, ?),';
+        paramsImages.push(idProducto, imgSecondaryUrlDB);
+
+      }
+
+      queryImages = queryImages.substring(0, queryImages.length - 1); // borrar la coma al final de la query
       const [results] = await con.execute(queryImages, paramsImages);
-      const { insertId: id, affectedRows } = results;
-      if (affectedRows === 0) throw `Error al guardar path de img secundaria ${originalname} en db`;
+      const { affectedRows } = results;
+      if (affectedRows === 0) throw `Error al guardar imagenes secundarias en db`;
 
-      imagenesProducto.push({ id, path: urlSecondaryImg })
+      const [imagesRows] = await con.execute(`SELECT id, path FROM imagenes WHERE id_producto = ?`, [idProducto]);
+      if (imagesRows.length === 0) throw 'Se recibieron las imagenes pero ocurrio un error al guardarlas para leerlas de la db';
+
+      imagenesProducto = imagesRows.map(image => { return { id: image.id, path: urlClodinaryImgs + image.path } });
     }
 
     // SI SE EJECUTO TODO SIN DISPARAR ERRORES
@@ -135,7 +159,7 @@ const createProduct = async (req = request, res = response, next) => {
         idTipo: tipo,
         tipo: (await con.execute(`SELECT descripcion FROM tipos WHERE id = ?`, [tipo]))[0][0].descripcion,
         cantidadConsultas: 0,
-        imagen: urlImgPrincipal,
+        imagen: urlClodinaryImgs + imgPrincipalUrlDB,
         imagenes: imagenesProducto
       }
     });
@@ -145,7 +169,7 @@ const createProduct = async (req = request, res = response, next) => {
     res.status(500).json({
       msg: 'Error al crear el producto, intente nuevamente',
       type: 'red'
-    })
+    });
     try {
       await con.rollback();
     } catch (err) {

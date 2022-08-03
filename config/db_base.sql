@@ -115,6 +115,14 @@ CREATE TABLE `user` (
 INSERT INTO `user` (`mail`, `nombre`, `apellido`, `password`) VALUES
 ('nataliepasteleria.artesanal@gmail.com', 'Natalia', 'Soria', '$2b$10$0O2N9y0NyiVaZI7WavIwv.VOY95QGqSA48PdNRJ5jHjblqSvC6pxC');
 
+
+--
+-- Views
+--
+
+CREATE VIEW `get_all_products` AS (SELECT `p`.`id` AS `id`, `nombre`,`p`.`descripcion` AS `descripcion`, `imagen`,`p`.`tipo` AS `idTipo`,`t`.`descripcion` AS `tipo`,`p`.`cantidad_consultas` AS `cantidadConsultas` FROM (`productos` `p` join `tipos` `t` ON`p`.`tipo` = `t`.`id`));
+
+
 --
 -- Indexes for dumped tables
 --
@@ -204,6 +212,7 @@ ALTER TABLE `imagenes`
 --
 ALTER TABLE `productos`
   ADD CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`tipo`) REFERENCES `tipos` (`id`) ON UPDATE CASCADE;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

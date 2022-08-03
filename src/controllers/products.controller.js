@@ -19,11 +19,15 @@ const getProducts = async (req = request, res = response, next) => {
   } = req.body;
   const { con } = req;
 
-  let queryGetProductos = 'SELECT * from get_all_products';
+  // let queryGetProductos = 'SELECT * from get_all_products';
+  let queryGetProductos = 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, imagen, ';
+  queryGetProductos += 'p.tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
+  queryGetProductos += 'FROM (productos p join tipos t on p.tipo = t.id)';
+
   const paramsGetProductos = [];
 
   if (tipo !== null) {
-    queryGetProductos += ' WHERE idTipo = ?';
+    queryGetProductos += ' WHERE p.tipo = ?';
     paramsGetProductos.push(tipo);
   }
   if (limite !== null) {
@@ -37,19 +41,17 @@ const getProducts = async (req = request, res = response, next) => {
   try {
     // const getPool = req.app.get('getPool');
     // const pool = getPool();
-    // const queryGetImagenes = 'SELECT * FROM `imagenes`';
+    // const queryGetImagenes = 'SELECT * FROM imagenes';
     // const [[imagesRows], [productsRows]] = await Promise.all([
     //   pool.execute(queryGetImagenes),
     //   pool.execute(queryGetProductos, paramsGetProductos)
     // ]);
     let productos = [];
 
-    const statement = con.prepare(queryGetProductos);
-    const [productsRows] = await statement.execute(paramsGetProductos);
-    await statement.close();
+    const [productsRows] = await con.execute(queryGetProductos, paramsGetProductos);
 
     if (productsRows.length !== 0) { // si hay productos
-      
+
       const queryGetImagenes = 'SELECT * FROM imagenes';
       const [imagesRows] = await con.execute(queryGetImagenes);
       const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');

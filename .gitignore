@@ -4,3 +4,6 @@ node_modules/
 src/assets/img/
 client.js
 insertSQL.js
+tests/
+coverage/
+jest.config.js

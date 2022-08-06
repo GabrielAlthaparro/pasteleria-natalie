@@ -11,7 +11,7 @@ const {
   validateJWT
 } = require('../middlewares')
 
-const { validTipo } = require('../helpers/db-validators');
+const { validateExistsIdTipo, validateExistsIdProduct } = require('../helpers/db-validators');
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -27,7 +27,7 @@ router.get('/', [
   body('tipo', 'Tipo inválido').optional()
     .isNumeric().bail()
     .toInt().bail()
-    .custom(validTipo),
+    .custom(validateExistsIdTipo),
   body('offset', 'Offset inválido').optional()
     .isNumeric().bail()
     .toInt().bail()
@@ -50,19 +50,21 @@ router.post('/', [
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñ0-9 ]*$/gi).bail().withMessage('Caracteres inválidos')
+    .matches(/^[a-zñáéíóúü0-9 ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
+    .toLowerCase()
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('tipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
     .isNumeric().bail()
     .toInt().bail()
-    .custom(validTipo),
+    .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñ0-9,\. ]*$/gi).bail().withMessage('Caracteres inválidos')
+    .matches(/^[a-zñáéíóúü0-9,\. ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
+    .toLowerCase()
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   validateReqFilesNotEmpty('imagenes'),
@@ -78,9 +80,10 @@ router.put('/:id', [
   validateJWT,
 
   param('id', 'ID inválido')
-    .notEmpty().bail()
-    .isNumeric().bail()
-    .toInt().bail(),
+    .notEmpty().bail().withMessage('El ID no puede estar vacío')
+    .customSanitizer(value => Number.parseInt(Number(value)))
+    .custom(value => !isNaN(value)).bail().withMessage('El ID debe ser un valor numérico')
+    .custom(validateExistsIdProduct),
 
   upload.array('imagenes'),
   body('nombre', 'Nombre inválido')
@@ -88,17 +91,19 @@ router.put('/:id', [
     .customSanitizer(value => value.toString())
     .matches(/^[a-zñ0-9 ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
+    .toLowerCase()
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('tipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
     .isNumeric().bail()
     .toInt().bail()
-    .custom(validTipo),
+    .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
     .matches(/^[a-zñ0-9,\. ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
+    .toLowerCase()
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   validateReqFilesExtensions('imagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
@@ -111,6 +116,12 @@ router.delete('/:id', [
     .notEmpty().bail()
     .customSanitizer(value => value.toString()),
   validateJWT,
+
+  param('id', 'ID inválido')
+    .notEmpty().bail().withMessage('El ID no puede estar vacío')
+    .customSanitizer(value => Number.parseInt(Number(value)))
+    .custom(value => !isNaN(value)).bail().withMessage('El ID debe ser un valor numérico')
+    .custom(validateExistsIdProduct),
 
   validateRequestFields
 ], deleteProduct);

@@ -14,13 +14,11 @@ const validateJWT = async (req = request, res = response, next) => {
     const msg = {
       text: 'Token inválido, inicie sesión nuevamente',
       type: 'red'
-    }
-    const param = 'token';
-    const location = 'headers';
+    };
     req.customError = {
       status: 401,
-      errors: [{ msg, param, location }]
-    }
+      msg
+    };
     next();
     return;
   }

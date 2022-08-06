@@ -1,5 +1,6 @@
 const { request, response } = require('express');
 const { validationResult } = require('express-validator');
+const { deleteTmpFilesBuffers } = require('./files');
 
 const validateRequestFields = (req = request, res = response, next) => {
   const errorFormatter = ({ location, msg, param, value, nestedErrors }) => {
@@ -25,9 +26,9 @@ const validateRequestFields = (req = request, res = response, next) => {
     } else {
 
       const { status } = customError;
-      if (status === 500) {
+      if (status !== undefined) {
         const { msg } = customError;
-        res.status(500).json({ msg });
+        res.status(status).json({ msg });
       } else {
 
         const { errors: customErrors } = customError;
@@ -35,17 +36,19 @@ const validateRequestFields = (req = request, res = response, next) => {
           ...expressValidatorErrors,
           ...customErrors
         ];
-        res.status(status || 400).json(requestErrors);
+        res.status(400).json(requestErrors);
       }
     }
 
-    const { con } = req;
+    const { con, files } = req;
     try {
       con.release();
     } catch (err) {
       console.log('Error al liberar la conexión');
       console.log(err);
     }
+
+    if (files !== undefined) deleteTmpFilesBuffers(files);
     return;
   }
 

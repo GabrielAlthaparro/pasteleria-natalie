@@ -1,30 +1,10 @@
 const path = require('path');
 const fs = require('fs');
 
-const { v4: uuidv4 } = require('uuid');
-
 const cloudinary = require('cloudinary').v2;
 cloudinary.config(process.env.CLOUDINARY_URL);
 
 const folder = (process.env.NODE_ENV === 'production') ? 'pasteleria-natalie' : 'pasteleria-natalie/dev';
-
-const getUuidFileName = name => {
-  const splitName = name.split('.');
-  const extension = splitName[splitName.length - 1];
-  const fileName = `${uuidv4()}.${extension}`;
-  return fileName;
-};
-
-const capitalizeName = (name) => {
-  const nameSplit = name.split(' ');
-  const nameSplitCapitalized = nameSplit.map(partOfName => {
-    const firstLetterCapitalized = partOfName.substring(0, 1).toUpperCase();
-    const restOfLetters = partOfName.substring(1).toLowerCase();
-    return firstLetterCapitalized + restOfLetters;
-  });
-  const nameCapitalized = nameSplitCapitalized.join('');
-  return nameCapitalized;
-};
 
 const getPublicIdFromCloudinaryImageUrl = (urlImgCloudinary) => {
   // https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
@@ -47,7 +27,6 @@ const getImgUrlDB = (secure_url) => {
   }
   return imgUrlDB;
 }
-
 
 const saveImgCloudinary = async (imgPath) => {
   const absolutePathImg = path.join(__dirname, '../../', imgPath); // vuelvo hasta carpeta src, y completo el path
@@ -73,8 +52,11 @@ const deleteImgCloudinary = async (public_id) => {
 const deleteTmpFilesBuffers = (files) => {
   const projectRootDirectory = path.join(__dirname, '../../');
   for (const file of files) {
+    const filePath = path.join(projectRootDirectory, file.path);
     try {
-      fs.unlinkSync(path.join(projectRootDirectory, file.path));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     } catch (err) {
       console.log(err);
       console.log(`Error al borrar el buffer de ${file.originalname}`);
@@ -83,8 +65,6 @@ const deleteTmpFilesBuffers = (files) => {
 };
 
 module.exports = {
-  capitalizeName,
-  getUuidFileName,
   saveImgCloudinary,
   deleteImgCloudinary,
   deleteTmpFilesBuffers,

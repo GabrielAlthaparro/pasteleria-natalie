@@ -1,15 +1,18 @@
 const path = require('path');
 const fs = require('fs');
 
-
-const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
-// https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
-
 const { request, response } = require('express');
 
 const { indexArrayToObjectWhitArray } = require('../helpers/indexArray');
-const { getImgUrlDB } = require('../helpers/products');
-const { saveImgCloudinary, deleteTmpFilesBuffers, deleteImgCloudinary, getPublicIdFromCloudinaryImageUrl } = require('../helpers/files');
+const {
+  saveImgCloudinary,
+  deleteTmpFilesBuffers,
+  deleteImgCloudinary,
+  getPublicIdFromCloudinaryImageUrl,
+  getImgUrlDB } = require('../helpers/files');
+
+const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
+// https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
 
 const getProducts = async (req = request, res = response, next) => {
   const {
@@ -187,11 +190,19 @@ const createProduct = async (req = request, res = response, next) => {
 
 const updateProduct = async (req = request, res = response, next) => {
   const { id } = req.params;
-  const { nombre, tipo, descripcion } = req.body;
+  const { nombre, idTipo, descripcion, imagen, imagenes } = req.body;
   const { files } = req;
   const { con } = req;
 
+  console.log(nombre);
+  console.log(descripcion);
+  console.log(idTipo);
+  console.log(imagen);
+  console.log(imagenes);
+  console.log(files);
+
   res.json({ msg: 'update' });
+  deleteTmpFilesBuffers(files);
   next();
 };
 

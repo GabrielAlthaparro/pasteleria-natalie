@@ -22,15 +22,18 @@ const validateRequestFields = (req = request, res = response, next) => {
     const expressValidatorErrors = expressValidatorResult.array(); // si no hay errores, []
 
     if (customError === null) {
+      // si no ocurrio ningun error personalizado
       res.status(400).json(expressValidatorErrors);
-    } else {
 
+    } else {
+      // sino, que tipo de error personalizado ocurrio?
       const { status } = customError;
-      if (status !== undefined) {
+      if (status !== undefined) { // si ocurrio algun error especial
+        
         const { msg } = customError;
         res.status(status).json({ msg });
-      } else {
-
+      } else { // sino solo ocurrieron bad requests
+        
         const { errors: customErrors } = customError;
         const requestErrors = [
           ...expressValidatorErrors,

@@ -8,9 +8,28 @@ const validateReqFilesNotEmpty = (param) => {
         text: 'Ingrese al menos una imágen',
         type: 'red'
       };
-      req.customError = {
-        errors: [{ msg, param, location: 'body' }]
+      if (req.customError?.status === undefined) { // si no ocurrio previamente un error especial
+        if (req.customError === null) { // si no hay errores previos por bad request
+          req.customError = { errors: [{ msg, param, location: 'body' }] };
+        }else{
+          req.customError.errors.push({ msg, param, location: 'body' });
+        }
       }
+
+
+      // if (req.customError === null) { // si no habia error antes, lo creo ahora, un bad request
+      //   req.customError = {
+      //     errors: [{ msg, param, location: 'body' }]
+      //   }
+      // } else { // si ya existia algun error, me fijo de que tipo (bad request, u otros)
+      //   if (req.customError.status === undefined) { // si no es un error especial
+      //     if (req.customError.errors !== undefined) { // si ya hay otros errores por bad request
+      //       req.customError.errors.push({ msg, param, location: 'body' });
+      //     } else {
+      //       req.customError.errors = [{ msg, param, location: 'body' }];
+      //     }
+      //   } // porque si era un error especial, no tengo que hacer nada
+      // }
     }
     next();
   };
@@ -23,18 +42,18 @@ const validateReqFilesExtensions = (param, validExtensions) => {
       const splitName = file.originalname.split('.');
       const extension = splitName[splitName.length - 1];
       if (!validExtensions.includes(extension)) {
-        if (req.customError === null) {
-          req.customError = {
-            errors: []
+        if (req.customError?.status === undefined) { // si no ocurrio previamente un error especial
+          if (req.customError === null) { // si no hay errores previos por bad request
+            req.customError = { errors: [] };
+          }
+          const { errors } = req.customError;
+          const msg = {
+            text: `La extensión .${extension} no es válida`,
+            type: 'red'
           };
+          errors.push({ msg, param, location: 'body' });
+          req.customError.errors = errors;
         }
-        const { errors } = req.customError;
-        const msg = {
-          text: `La extensión .${extension} no es válida`,
-          type: 'red'
-        };
-        errors.push({ msg, param, location: 'body' });
-        req.customError.errors = errors;
       }
     });
     next();

@@ -1,14 +1,23 @@
 const { Router } = require('express');
 
+const CANTIDAD_ARCHIVOS_PERMITIDOS = 20;
 const multer = require('multer')
-const upload = multer({ dest: './src/uploads' });
+const upload = multer(
+  {
+    dest: './src/uploads',
+    limits: {
+      fileSize: 5242880, // cada archivo puede pesar máximo 5mb
+      files: CANTIDAD_ARCHIVOS_PERMITIDOS // cuantos archivos puede tener cada campor de file
+    }
+  });
 
 const { header, param, body } = require('express-validator');
 
 const {
   validateReqFilesNotEmpty,
   validateReqFilesExtensions,
-  validateJWT
+  validateJWT,
+  multerErrorHandler
 } = require('../middlewares')
 
 const { validateExistsIdTipo, validateExistsIdProduct } = require('../helpers/db-validators');
@@ -23,22 +32,24 @@ const {
 
 const router = Router();
 
+
 router.get('/', [
   body('tipo', 'Tipo inválido').optional()
-    .isNumeric().bail()
-    .toInt().bail()
+    .isInt().bail()
+    .toInt()
     .custom(validateExistsIdTipo),
   body('offset', 'Offset inválido').optional()
-    .isNumeric().bail()
-    .toInt().bail()
+    .isInt().bail()
+    .toInt()
     .custom(value => (value >= 0) ? true : false),
   body('limite', 'Límite inválido').optional()
-    .isNumeric().bail()
-    .toInt().bail()
+    .isInt().bail()
+    .toInt()
     .custom(value => (value >= 0) ? true : false),
 
   validateRequestFields
 ], getProducts);
+
 
 router.post('/', [
   header('token', 'Token no enviado')
@@ -47,24 +58,25 @@ router.post('/', [
   validateJWT,
 
   upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
+  multerErrorHandler('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñáéíóúü0-9 ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
     .toLowerCase()
+    .matches(/^[a-zñ0-9 ]*$/g).bail().withMessage('El nombre tiene caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('tipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
-    .isNumeric().bail()
-    .toInt().bail()
+    .isInt().bail()
+    .toInt()
     .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñáéíóúü0-9,\. ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
     .toLowerCase()
+    .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('La descripción tiene caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   validateReqFilesNotEmpty('imagenes'),
@@ -72,6 +84,7 @@ router.post('/', [
 
   validateRequestFields
 ], createProduct);
+
 
 router.put('/:id', [
   header('token', 'Token no enviado')
@@ -81,35 +94,47 @@ router.put('/:id', [
 
   param('id', 'ID inválido')
     .notEmpty().bail().withMessage('El ID no puede estar vacío')
-    .customSanitizer(value => Number.parseInt(Number(value)))
-    .custom(value => !isNaN(value)).bail().withMessage('El ID debe ser un valor numérico')
+    .isInt().bail().withMessage('El ID debe ser un número natural')
+    .toInt()
     .custom(validateExistsIdProduct),
 
-  upload.array('imagenes'),
+  upload.array('nuevasImagenes'),
+  multerErrorHandler('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñ0-9 ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
     .toLowerCase()
+    .matches(/^[a-zñ0-9 ]*$/g).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
-  body('tipo', 'Tipo inválido')
+  body('idTipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
-    .isNumeric().bail()
-    .toInt().bail()
+    .isInt().bail()
+    .toInt()
     .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
-    .matches(/^[a-zñ0-9,\. ]*$/gi).bail().withMessage('Caracteres inválidos')
     .trim()
     .toLowerCase()
+    .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
+  body('imagen', 'Valor inválido en imágen')
+    .notEmpty().bail().withMessage('La imágen no puede estar vacía')
+    .isInt().bail()
+    .toInt()
+    .custom(value => (0 <= value && value <= 4) ? true : false),
+  body('imagenes', 'Imagenes inválidas').optional()
+    .customSanitizer(value => value.toString())
+    .isJSON().bail().withMessage('Imagenes inválidas, se esperaba un JSON')
+    .customSanitizer(value => JSON.parse(value)),
 
-  validateReqFilesExtensions('imagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
+  validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
   validateRequestFields
 ], updateProduct);
+
 
 router.delete('/:id', [
   header('token', 'Token no enviado')
@@ -119,8 +144,8 @@ router.delete('/:id', [
 
   param('id', 'ID inválido')
     .notEmpty().bail().withMessage('El ID no puede estar vacío')
-    .customSanitizer(value => Number.parseInt(Number(value)))
-    .custom(value => !isNaN(value)).bail().withMessage('El ID debe ser un valor numérico')
+    .isInt().bail().withMessage('El ID debe ser un número natural')
+    .toInt()
     .custom(validateExistsIdProduct),
 
   validateRequestFields

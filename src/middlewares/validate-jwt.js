@@ -13,7 +13,8 @@ const validateJWT = async (req = request, res = response, next) => {
     console.log(err);
     const msg = {
       text: 'Token inválido, inicie sesión nuevamente',
-      type: 'red'
+      type: 'red',
+      token: null
     };
     req.customError = {
       status: 401,

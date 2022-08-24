@@ -7,3 +7,4 @@ insertSQL.js
 tests/
 coverage/
 jest.config.js
+*.test.js

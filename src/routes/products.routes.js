@@ -54,7 +54,8 @@ router.get('/', [
 router.post('/', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()),
+    .customSanitizer(value => value.toString())
+    .trim(),
   validateJWT,
 
   upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
@@ -89,7 +90,8 @@ router.post('/', [
 router.put('/:id', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()),
+    .customSanitizer(value => value.toString())
+    .trim(),
   validateJWT,
 
   param('id', 'ID inválido')
@@ -120,11 +122,25 @@ router.put('/:id', [
     .toLowerCase()
     .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
-  body('imagen', 'Valor inválido en imágen')
-    .notEmpty().bail().withMessage('La imágen no puede estar vacía')
-    .isInt().bail()
+
+  body('cantidadConsultas', 'Cantidad de consultas inválida')
+    .notEmpty().bail().withMessage('Envíe una cantidad de consultas')
+    .isInt().bail().withMessage('La cantidad de consultas tiene que ser un valor numérico')
     .toInt()
-    .custom(value => (0 <= value && value <= 4) ? true : false),
+    .custom(value => (value >= 0) ? true : false),
+
+  // body('cambiarImgPrincipal', 'Cantidad de consultas inválida')
+  // .notEmpty().bail().withMessage('Envíe una cantidad de consultas')
+  // .isBoolean().bail()
+  // .toBoolean(),
+
+
+
+  // body('imagen', 'Valor inválido en imágen')
+  //   .notEmpty().bail().withMessage('La imágen no puede estar vacía')
+  //   .isInt().bail()
+  //   .toInt()
+  //   .custom(value => (0 <= value && value <= 4) ? true : false),
   body('imagenes', 'Imagenes inválidas').optional()
     .customSanitizer(value => value.toString())
     .isJSON().bail().withMessage('Imagenes inválidas, se esperaba un JSON')
@@ -139,7 +155,8 @@ router.put('/:id', [
 router.delete('/:id', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()),
+    .customSanitizer(value => value.toString())
+    .trim(),
   validateJWT,
 
   param('id', 'ID inválido')

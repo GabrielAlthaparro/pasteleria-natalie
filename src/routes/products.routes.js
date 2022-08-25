@@ -1,7 +1,7 @@
 const { Router } = require('express');
 
 const CANTIDAD_ARCHIVOS_PERMITIDOS = 20;
-const multer = require('multer')
+const multer = require('multer');
 const upload = multer(
   {
     dest: './src/uploads',
@@ -20,7 +20,7 @@ const {
   multerErrorHandler
 } = require('../middlewares')
 
-const { validateExistsIdTipo, validateExistsIdProduct } = require('../helpers/db-validators');
+const { validateExistsIdTipo, validateExistsIdProduct, } = require('../helpers/db-validators');
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -102,6 +102,7 @@ router.put('/:id', [
 
   upload.array('nuevasImagenes'),
   multerErrorHandler('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
@@ -129,24 +130,11 @@ router.put('/:id', [
     .toInt()
     .custom(value => (value >= 0) ? true : false),
 
-  // body('cambiarImgPrincipal', 'Cantidad de consultas inválida')
-  // .notEmpty().bail().withMessage('Envíe una cantidad de consultas')
-  // .isBoolean().bail()
-  // .toBoolean(),
-
-
-
-  // body('imagen', 'Valor inválido en imágen')
-  //   .notEmpty().bail().withMessage('La imágen no puede estar vacía')
-  //   .isInt().bail()
-  //   .toInt()
-  //   .custom(value => (0 <= value && value <= 4) ? true : false),
-  body('imagenes', 'Imagenes inválidas').optional()
+  body('imagenes', 'Imagenes inválidas')
+    .notEmpty().bail().withMessage('El array de imágenes no puede estar vacío')
     .customSanitizer(value => value.toString())
-    .isJSON().bail().withMessage('Imagenes inválidas, se esperaba un JSON')
+    .isJSON({ allow_primitives: true }).bail().withMessage('Imagenes inválidas, se esperaba un JSON')
     .customSanitizer(value => JSON.parse(value)),
-
-  validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
   validateRequestFields
 ], updateProduct);

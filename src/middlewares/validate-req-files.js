@@ -11,25 +11,10 @@ const validateReqFilesNotEmpty = (param) => {
       if (req.customError?.status === undefined) { // si no ocurrio previamente un error especial
         if (req.customError === null) { // si no hay errores previos por bad request
           req.customError = { errors: [{ msg, param, location: 'body' }] };
-        }else{
+        } else {
           req.customError.errors.push({ msg, param, location: 'body' });
         }
       }
-
-
-      // if (req.customError === null) { // si no habia error antes, lo creo ahora, un bad request
-      //   req.customError = {
-      //     errors: [{ msg, param, location: 'body' }]
-      //   }
-      // } else { // si ya existia algun error, me fijo de que tipo (bad request, u otros)
-      //   if (req.customError.status === undefined) { // si no es un error especial
-      //     if (req.customError.errors !== undefined) { // si ya hay otros errores por bad request
-      //       req.customError.errors.push({ msg, param, location: 'body' });
-      //     } else {
-      //       req.customError.errors = [{ msg, param, location: 'body' }];
-      //     }
-      //   } // porque si era un error especial, no tengo que hacer nada
-      // }
     }
     next();
   };

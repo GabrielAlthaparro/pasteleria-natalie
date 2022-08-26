@@ -278,7 +278,7 @@ const updateProduct = async (req = request, res = response, next) => {
 
     } else { // sino, se borro la imagen principal, ahora necesito buscar en que array esta la nueva imágen principal
 
-      if (imagenes[0].principal) { // la nueva img principal es una foto existente, en el array de imagenes
+      if (imagenes.length !== 0 && imagenes[0].principal) { // la nueva img principal es una foto existente, en el array de imagenes
         const queryUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
         const paramsUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
         const [updateImgSecondaryToPrincipalResult] = await con.execute(queryUpdateImgSecondaryToPrincipal, paramsUpdateImgSecondaryToPrincipal);

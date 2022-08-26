@@ -23,7 +23,6 @@ let pool;
 
 const getPool = () => {
   if (!pool) {
-    console.log('Reconectando la base de datos...');
     pool = mysql.createPool(config);
 
     pool.on('connection', connection => {

@@ -6,7 +6,7 @@ cloudinary.config(process.env.CLOUDINARY_URL);
 
 const folder = (process.env.NODE_ENV === 'production') ? 'pasteleria-natalie' : 'pasteleria-natalie/dev';
 
-const getPublicIdFromCloudinaryImageUrl = (urlImgCloudinary) => {
+const getPublicIdFromCloudinaryImageUrl = urlImgCloudinary => {
   // https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
   const splitUrl = urlImgCloudinary.split('/');
   let public_id = '';
@@ -19,7 +19,7 @@ const getPublicIdFromCloudinaryImageUrl = (urlImgCloudinary) => {
   return public_id;
 };
 
-const getImgUrlDB = (secure_url) => {
+const getImgUrlDB = secure_url => {
   const urlSplit = secure_url.split('/');
   let imgUrlDB = '';
   for (let i = 6; i < urlSplit.length; i++) {
@@ -28,7 +28,7 @@ const getImgUrlDB = (secure_url) => {
   return imgUrlDB;
 }
 
-const saveImgCloudinary = async (imgPath) => {
+const saveImgCloudinary = async imgPath => {
   const absolutePathImg = path.join(__dirname, '../../', imgPath); // vuelvo hasta carpeta src, y completo el path
   try {
     const { public_id, secure_url } = await cloudinary.uploader.upload(absolutePathImg, { folder });
@@ -39,7 +39,7 @@ const saveImgCloudinary = async (imgPath) => {
   }
 };
 
-const deleteImgCloudinary = async (public_id) => {
+const deleteImgCloudinary = async public_id => {
   try {
     const { result } = await cloudinary.uploader.destroy(public_id);
     if (result !== 'ok') throw 'Cloudinary no tiro error al borrar una foto, pero no me devolvio el ok';
@@ -49,7 +49,7 @@ const deleteImgCloudinary = async (public_id) => {
   }
 };
 
-const deleteTmpFilesBuffers = (files) => {
+const deleteTmpFilesBuffers = files => {
   const projectRootDirectory = path.join(__dirname, '../../');
   for (const file of files) {
     const filePath = path.join(projectRootDirectory, file.path);

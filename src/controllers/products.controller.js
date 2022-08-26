@@ -230,7 +230,6 @@ const updateProduct = async (req = request, res = response, next) => {
       if (affectedRows === 0) throw `Error al editar los datos del producto`;
     }
 
-    // validaciones de imagenes
     let [imagesDB] = await con.execute('SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC', [idProducto]);
     imagesDB = imagesDB.map(imageDB => { // cambio valores numericos de principal por valores booleanos
       const { id, path, principal } = imageDB;
@@ -238,10 +237,6 @@ const updateProduct = async (req = request, res = response, next) => {
     })
     const indexedImagesDB = indexArrayToObject(imagesDB, 'id');
 
-    imagenes.sort((imgA, imgB) => imgB.principal - imgA.principal); // queda en la primer posición la imágen principal, si existe
-    if (imagenes.length >= 2) { // si hay mas de dos imágenes en el array de imágenes
-      if (imagenes[0].principal && imagenes[1].principal) throw 'Error, solo puede haber una imágen principal';
-    }
     // verificar que los ids enviados existen en DB
     imagenes.forEach(imagen => {
       if (indexedImagesDB[imagen.id] === undefined) throw 'ID recibido no existe en la db';
@@ -250,47 +245,33 @@ const updateProduct = async (req = request, res = response, next) => {
     const indexedReceivedImages = indexArrayToObject(imagenes, 'id');
     const oldImgPrincipal = imagesDB[0];
     if (indexedReceivedImages[oldImgPrincipal.id] !== undefined) { // si existe la img principal en el array imagenes
-      if (indexedReceivedImages[oldImgPrincipal.id].principal === false) { // si vieja img principal ahora es secundaria
+      if (indexedReceivedImages[oldImgPrincipal.id].principal === false) { // si vieja img principal ahora tinene que ser secundaria
+
+        // vieja imágen principal pasa a ser secundaria
+        const queryUpdateImgPrincipalToSecondary = 'UPDATE imagenes SET principal = 0 WHERE id = ?';
+        const paramsUpdateImgPrincipalToSecondary = [oldImgPrincipal.id] // img principal pasa a ser secundaria
+        const [updateImgPrincipalToSecondaryResult] = await con.execute(queryUpdateImgPrincipalToSecondary, paramsUpdateImgPrincipalToSecondary);
+        const { affectedRows: affectedRowsUpdateOldPrincipalImage } = updateImgPrincipalToSecondaryResult;
+        if (affectedRowsUpdateOldPrincipalImage === 0) throw 'Error al editar imágen principal para ser secundaria';
+
         if (imagenes[0].principal) { // si la nueva imagen principal esta en el array imagenes
 
-          // intercambiar imagen principal por secundaria
+          // imágen secundaria pasa a ser principal
           const queryUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
           const paramsUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
           const [updateImgSecondaryToPrincipalResult] = await con.execute(queryUpdateImgSecondaryToPrincipal, paramsUpdateImgSecondaryToPrincipal);
           const { affectedRows: affectedRowsUpdateOldSecondaryImage } = updateImgSecondaryToPrincipalResult;
           if (affectedRowsUpdateOldSecondaryImage === 0) throw 'Error al editar imágen secundaria para ser principal';
 
-          const queryUpdateImgPrincipalToSecondary = 'UPDATE imagenes SET principal = 0 WHERE id = ?';
-          const paramsUpdateImgPrincipalToSecondary = [oldImgPrincipal.id] // img principal pasa a ser secundaria
-          const [updateImgPrincipalToSecondaryResult] = await con.execute(queryUpdateImgPrincipalToSecondary, paramsUpdateImgPrincipalToSecondary);
-          const { affectedRows: affectedRowsUpdateOldPrincipalImage } = updateImgPrincipalToSecondaryResult;
-          if (affectedRowsUpdateOldPrincipalImage === 0) throw 'Error al editar imágen principal para ser secundaria';
-
         } else { // sino, la nueva imagen principal está en el array de nuevas imagenes
 
-          const queryUpdateImgPrincipalToSecondary = 'UPDATE imagenes SET principal = 0 WHERE id = ?';
-          const paramsUpdateImgPrincipalToSecondary = [oldImgPrincipal.id] // img principal pasa a ser secundaria
-          const [updateImgPrincipalToSecondaryResult] = await con.execute(queryUpdateImgPrincipalToSecondary, paramsUpdateImgPrincipalToSecondary);
-          const { affectedRows: affectedRowsUpdateOldPrincipalImage } = updateImgPrincipalToSecondaryResult;
-          if (affectedRowsUpdateOldPrincipalImage === 0) throw 'Error al editar imágen principal para ser secundaria';
-
-          if (receivedImages.length === 0) {
-            res.status(400).json({
-              msg: {
-                text: 'Error, se quiere borrar la imágen principal, pero no se envió una nueva',
-                type: 'red'
-              },
-              param: 'nuevasImagenes',
-              location: 'body'
-            });
-            next();
-            return;
-          }
+          // guardar en Cloudinary
           const imgPrincipal = receivedImages.shift(); // saco del array la primera posicion, donde esta la img principal
-          const { path: imgPath } = imgPrincipal; // por si me viene un path erroneó, lo saco yo de la db
+          const { path: imgPath } = imgPrincipal;
           const { public_id, secure_url: urlImgPrincipal } = await saveImgCloudinary(imgPath);
           uploadedImagesCloudinary.push(public_id);
 
+          // guardar en DB
           const queryImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
           const paramsImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
           const [insertImgPrincipalResult] = await con.execute(queryImages, paramsImages);
@@ -300,7 +281,8 @@ const updateProduct = async (req = request, res = response, next) => {
       } // sino, la imágen principal no cambio, y no tengo que hacer nada
 
     } else { // sino, se borro la imagen principal, ahora necesito buscar en que array esta la nueva imágen principal
-      if (imagenes[0]?.principal) { // la nueva img principal es una foto existente, en el array de imagenes
+
+      if (imagenes[0].principal) { // la nueva img principal es una foto existente, en el array de imagenes
         const queryUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
         const paramsUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
         const [updateImgSecondaryToPrincipalResult] = await con.execute(queryUpdateImgSecondaryToPrincipal, paramsUpdateImgSecondaryToPrincipal);
@@ -309,23 +291,13 @@ const updateProduct = async (req = request, res = response, next) => {
 
       } else { // la nueva principal esta en el array de nuevas fotos
 
-        if (receivedImages.length === 0) {
-          res.status(400).json({
-            msg: {
-              text: 'Error, se quiere borrar la imágen principal, pero no se envió una nueva',
-              type: 'red'
-            },
-            param: 'nuevasImagenes',
-            location: 'body'
-          });
-          next();
-          return;
-        }
+        // guardar en Cloudinary
         const imgPrincipal = receivedImages.shift(); // saco del array la primera posicion, donde esta la img principal
         const { path: imgPath } = imgPrincipal; // por si me viene un path erroneó, lo saco yo de la db
         const { public_id, secure_url: urlImgPrincipal } = await saveImgCloudinary(imgPath);
         uploadedImagesCloudinary.push(public_id);
 
+        // guardar en DB
         const queryImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
         const paramsImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
         const [insertImgPrincipalResult] = await con.execute(queryImages, paramsImages);
@@ -419,41 +391,14 @@ const updateProduct = async (req = request, res = response, next) => {
   next();
 };
 
-/* [
-  {
-    principal: true,
-    id: 0,
-  },
-  {
-    principal: false,
-    id: 0,
-  },
-  {
-    principal: false,
-    id: 0,
-  }
-]
- 
-[
-  {
-    binario: "fdsfsd"
-  },
-  {
-    binario: "fdsfsd"
-  },
-  {
-    binario: "fdsfsd"
-  }
-] */
-
 const deleteProduct = async (req = request, res = response, next) => {
-  const { id } = req.params;
+  const { id: idProducto } = req.params;
   const { con } = req;
 
   try {
     // borrar imágenes de cloudinary
     const queryGetProductImages = 'SELECT path FROM imagenes WHERE id_producto = ?';
-    const paramsGetProductImages = [id];
+    const paramsGetProductImages = [idProducto];
     const [productImages] = await con.execute(queryGetProductImages, paramsGetProductImages);
     for (const image of productImages) {
       const completeUrlImg = urlClodinaryImgs + image.path;
@@ -463,7 +408,7 @@ const deleteProduct = async (req = request, res = response, next) => {
 
     // borrar producto e imagenes de DB
     const queryDeleteProduct = 'DELETE FROM productos where id = ?'; // por clave foránea se borran las imgs de la tabla imagenes
-    const paramsDeleteProduct = [id];
+    const paramsDeleteProduct = [idProducto];
 
     const [resultDeleteProduct] = await con.execute(queryDeleteProduct, paramsDeleteProduct);
     const { affectedRows } = resultDeleteProduct;
@@ -478,10 +423,11 @@ const deleteProduct = async (req = request, res = response, next) => {
 
   } catch (err) {
     console.log(err);
-    res.status(500).json({
-      msg: 'Error al borrar el producto, intente nuevamente',
+    const msg = {
+      text: 'Error al borrar el producto, intente nuevamente',
       type: 'red'
-    })
+    };
+    res.status(500).json({ msg })
   }
   next();
 };

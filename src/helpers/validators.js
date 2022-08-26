@@ -32,7 +32,17 @@ const validateExistsIdProduct = async (id, { req }) => {
   }
 };
 
+const validateArrayImagenes = (imagenes, { req }) => {
+  // validaciones de imagenes
+  if (req.files.length === 0) {
+    if (imagenes.length === 0 || imagenes[0].principal === false) throw 'Se quiere reemplazar la imágen principal, pero no se envió una nueva';
+  }
+  if (imagenes.length >= 2 && (imagenes[0].principal && imagenes[1].principal)) throw 'Se enviaron dos imágenes principales';
+  return true;
+}
+
 module.exports = {
   validateExistsIdTipo,
-  validateExistsIdProduct
+  validateExistsIdProduct,
+  validateArrayImagenes
 }

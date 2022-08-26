@@ -1,3 +1,4 @@
+'use strict';
 const { Router } = require('express');
 
 const CANTIDAD_ARCHIVOS_PERMITIDOS = 20;
@@ -20,7 +21,7 @@ const {
   multerErrorHandler
 } = require('../middlewares')
 
-const { validateExistsIdTipo, validateExistsIdProduct, } = require('../helpers/db-validators');
+const { validateExistsIdTipo, validateExistsIdProduct, validateArrayImagenes, } = require('../helpers/validators');
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -35,17 +36,15 @@ const router = Router();
 
 router.get('/', [
   body('tipo', 'Tipo inválido').optional()
-    .isInt().bail()
+    .isInt({ min: 1 }).bail()
     .toInt()
     .custom(validateExistsIdTipo),
   body('offset', 'Offset inválido').optional()
-    .isInt().bail()
-    .toInt()
-    .custom(value => (value >= 0) ? true : false),
+    .isInt({ min: 1 }).bail()
+    .toInt(),
   body('limite', 'Límite inválido').optional()
-    .isInt().bail()
-    .toInt()
-    .custom(value => (value >= 0) ? true : false),
+    .isInt({ min: 1 }).bail()
+    .toInt(),
 
   validateRequestFields
 ], getProducts);
@@ -96,7 +95,7 @@ router.put('/:id', [
 
   param('id', 'ID inválido')
     .notEmpty().bail().withMessage('El ID no puede estar vacío')
-    .isInt().bail().withMessage('El ID debe ser un número natural')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
     .toInt()
     .custom(validateExistsIdProduct),
 
@@ -113,7 +112,7 @@ router.put('/:id', [
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('idTipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
-    .isInt().bail()
+    .isInt({ min: 1 }).bail()
     .toInt()
     .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
@@ -126,15 +125,23 @@ router.put('/:id', [
 
   body('cantidadConsultas', 'Cantidad de consultas inválida')
     .notEmpty().bail().withMessage('Envíe una cantidad de consultas')
-    .isInt().bail().withMessage('La cantidad de consultas tiene que ser un valor numérico')
-    .toInt()
-    .custom(value => (value >= 0) ? true : false),
+    .isInt({ min: 0 }).bail().withMessage('La cantidad de consultas tiene que ser un valor numérico positivo')
+    .toInt(),
 
-  body('imagenes', 'Imagenes inválidas')
-    .notEmpty().bail().withMessage('El array de imágenes no puede estar vacío')
+  body('imagenes', 'Imágenes inválidas')
+    .notEmpty().bail().withMessage('El array de imágenes existentes no puede estar vacío')
     .customSanitizer(value => value.toString())
-    .isJSON({ allow_primitives: true }).bail().withMessage('Imagenes inválidas, se esperaba un JSON')
-    .customSanitizer(value => JSON.parse(value)),
+    .isJSON({ allow_primitives: true }).bail().withMessage('Imágenes inválidas, se esperaba un JSON')
+    .customSanitizer(value => JSON.parse(value))
+    .isArray().bail(),
+
+  body('imagenes.*.id').isInt({ min: 1 }).bail().withMessage('ID de imágen inválido').toInt(),
+  body('imagenes.*.principal').isBoolean().bail().withMessage('Campo principal en imágen inválido').toBoolean(),
+
+  body('imagenes', 'Imágenes inválidas')
+    .if(body('imagenes.*.principal').isBoolean())
+    .customSanitizer(imagenes => imagenes.sort((imgA, imgB) => Number(Boolean(imgB.principal)) - Number(Boolean(imgA.principal))))
+    .custom(validateArrayImagenes),
 
   validateRequestFields
 ], updateProduct);
@@ -149,7 +156,7 @@ router.delete('/:id', [
 
   param('id', 'ID inválido')
     .notEmpty().bail().withMessage('El ID no puede estar vacío')
-    .isInt().bail().withMessage('El ID debe ser un número natural')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
     .toInt()
     .custom(validateExistsIdProduct),
 

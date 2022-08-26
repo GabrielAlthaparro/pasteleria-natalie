@@ -361,6 +361,7 @@ const updateProduct = async (req = request, res = response, next) => {
       descripcion,
       idTipo,
       tipo: (await con.execute(`SELECT descripcion FROM tipos WHERE id = ?`, [idTipo]))[0][0].descripcion,
+      cantidadConsultas: productDB.cantidadConsultas,
       imagenes: imagenesProducto
     };
 

@@ -123,11 +123,6 @@ router.put('/:id', [
     .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
-  body('cantidadConsultas', 'Cantidad de consultas inválida')
-    .notEmpty().bail().withMessage('Envíe una cantidad de consultas')
-    .isInt({ min: 0 }).bail().withMessage('La cantidad de consultas tiene que ser un valor numérico positivo')
-    .toInt(),
-
   body('imagenes', 'Imágenes inválidas')
     .notEmpty().bail().withMessage('El array de imágenes existentes no puede estar vacío')
     .customSanitizer(value => value.toString())

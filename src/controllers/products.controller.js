@@ -182,7 +182,7 @@ const createProduct = async (req = request, res = response, next) => {
 
 const updateProduct = async (req = request, res = response, next) => {
   const { id: idProducto } = req.params;
-  const { nombre, idTipo, descripcion, cantidadConsultas, imagenes } = req.body;
+  const { nombre, idTipo, descripcion, imagenes } = req.body;
   const { files } = req;
   const { con } = req;
 
@@ -215,10 +215,6 @@ const updateProduct = async (req = request, res = response, next) => {
     if (productDB.descripcion !== descripcion) {
       queryUpdateProduct += ' descripcion = ?,';
       paramsUpdateProduct.push(descripcion);
-    }
-    if (productDB.cantidadConsultas !== cantidadConsultas) {
-      queryUpdateProduct += ' cantidad_consultas = ?,';
-      paramsUpdateProduct.push(cantidadConsultas);
     }
 
     if (paramsUpdateProduct.length !== 0) { // si hay que editar algun dato del producto en tabla productos
@@ -365,7 +361,6 @@ const updateProduct = async (req = request, res = response, next) => {
       descripcion,
       idTipo,
       tipo: (await con.execute(`SELECT descripcion FROM tipos WHERE id = ?`, [idTipo]))[0][0].descripcion,
-      cantidadConsultas,
       imagenes: imagenesProducto
     };
 

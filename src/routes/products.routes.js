@@ -1,7 +1,7 @@
 'use strict';
 const { Router } = require('express');
 
-const CANTIDAD_ARCHIVOS_PERMITIDOS = 20;
+const CANTIDAD_ARCHIVOS_PERMITIDOS = 10;
 const multer = require('multer');
 const upload = multer(
   {
@@ -21,7 +21,7 @@ const {
   multerErrorHandler
 } = require('../middlewares')
 
-const { validateExistsIdTipo, validateExistsIdProduct, validateArrayImagenes, } = require('../helpers/validators');
+const { validateExistsIdTipo, validateExistsIdProduct, validateArrayImagenes, validateIDsNotRepeatInArray, } = require('../helpers/validators');
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -57,7 +57,7 @@ router.post('/', [
     .trim(),
   validateJWT,
 
-  upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
+  upload.array('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
   multerErrorHandler('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
@@ -99,7 +99,7 @@ router.put('/:id', [
     .toInt()
     .custom(validateExistsIdProduct),
 
-  upload.array('nuevasImagenes'),
+  upload.array('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   multerErrorHandler('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
@@ -132,6 +132,10 @@ router.put('/:id', [
 
   body('imagenes.*.id').isInt({ min: 1 }).bail().withMessage('ID de imágen inválido').toInt(),
   body('imagenes.*.principal').isBoolean().bail().withMessage('Campo principal en imágen inválido').toBoolean(),
+
+  body('imagenes', 'Imágenes inválidas')
+    .if(body('imagenes').isInt({ min: 1 }))
+    .custom(validateIDsNotRepeatInArray).bail().withMessage('Se enviaron imágenes con IDs repetidos'),
 
   body('imagenes', 'Imágenes inválidas')
     .if(body('imagenes.*.principal').isBoolean())

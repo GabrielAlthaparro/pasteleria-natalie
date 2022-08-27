@@ -41,8 +41,19 @@ const validateArrayImagenes = (imagenes, { req }) => {
   return true;
 }
 
+const validateIDsNotRepeatInArray = array => {
+  array.sort((a, b) => a.id - b.id);
+  let previousID = -1;
+  for (const elem of array) {
+    if (elem.id === previousID) return false;
+    previousID = elem.id;
+  }
+  return true;
+}
+
 module.exports = {
   validateExistsIdTipo,
   validateExistsIdProduct,
-  validateArrayImagenes
+  validateArrayImagenes,
+  validateIDsNotRepeatInArray
 }

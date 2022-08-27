@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 24-08-2022 a las 03:00:26
+-- Tiempo de generación: 27-08-2022 a las 06:27:00
 -- Versión del servidor: 5.7.31
 -- Versión de PHP: 7.4.9
 
@@ -24,21 +24,6 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `consultas`
---
-
-DROP TABLE IF EXISTS `consultas`;
-CREATE TABLE IF NOT EXISTS `consultas` (
-  `id_mensaje` int(11) NOT NULL,
-  `id_producto` int(11) NOT NULL,
-  `cantidad` int(11) NOT NULL,
-  PRIMARY KEY (`id_mensaje`,`id_producto`),
-  KEY `id_producto` (`id_producto`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
-
--- --------------------------------------------------------
-
---
 -- Estructura de tabla para la tabla `imagenes`
 --
 
@@ -47,10 +32,10 @@ CREATE TABLE IF NOT EXISTS `imagenes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `id_producto` int(11) NOT NULL,
   `path` varchar(150) COLLATE utf8_spanish_ci NOT NULL,
-  `principal` tinyint(1) NOT NULL DEFAULT '0',
+  `principal` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `id_producto_ibfk` (`id_producto`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -61,12 +46,27 @@ CREATE TABLE IF NOT EXISTS `imagenes` (
 DROP TABLE IF EXISTS `mensajes`;
 CREATE TABLE IF NOT EXISTS `mensajes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `mail` varchar(70) COLLATE utf8_spanish_ci NOT NULL,
+  `email` varchar(70) COLLATE utf8_spanish_ci NOT NULL,
   `nombre` varchar(70) COLLATE utf8_spanish_ci NOT NULL,
-  `aclaraciones` text COLLATE utf8_spanish_ci NOT NULL,
+  `aclaraciones` text COLLATE utf8_spanish_ci,
   `fecha` varchar(10) COLLATE utf8_spanish_ci NOT NULL,
   `visto` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `mensajes_productos`
+--
+
+DROP TABLE IF EXISTS `mensajes_productos`;
+CREATE TABLE IF NOT EXISTS `mensajes_productos` (
+  `id_mensaje` int(11) NOT NULL,
+  `id_producto` int(11) NOT NULL,
+  `cantidad` int(11) NOT NULL,
+  PRIMARY KEY (`id_mensaje`,`id_producto`),
+  KEY `id_producto` (`id_producto`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `productos` (
   `descripcion` varchar(255) COLLATE utf8_spanish_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `tipo_ibfk` (`tipo`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -134,17 +134,17 @@ INSERT INTO `user` (`mail`, `nombre`, `apellido`, `password`) VALUES
 --
 
 --
--- Filtros para la tabla `consultas`
---
-ALTER TABLE `consultas`
-  ADD CONSTRAINT `consultas_ibfk_1` FOREIGN KEY (`id_mensaje`) REFERENCES `mensajes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `consultas_ibfk_2` FOREIGN KEY (`id_producto`) REFERENCES `productos` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
 -- Filtros para la tabla `imagenes`
 --
 ALTER TABLE `imagenes`
   ADD CONSTRAINT `imagenes_ibfk_1` FOREIGN KEY (`id_producto`) REFERENCES `productos` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `mensajes_productos`
+--
+ALTER TABLE `mensajes_productos`
+  ADD CONSTRAINT `mensajes_productos_ibfk_1` FOREIGN KEY (`id_mensaje`) REFERENCES `mensajes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `mensajes_productos_ibfk_2` FOREIGN KEY (`id_producto`) REFERENCES `productos` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Filtros para la tabla `productos`

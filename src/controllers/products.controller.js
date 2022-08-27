@@ -54,8 +54,8 @@ const getProducts = async (req = request, res = response, next) => {
         const imagenes = [];
         if (indexedImages[producto.id] !== undefined) {
           for (const imagen of indexedImages[producto.id]) {
-            const { id, path, principal } = imagen;
-            imagenes.push({ id, path: urlClodinaryImgs + path, principal: principal === 1 ? true : false })
+            const { id, path, principal } = imagen; // principal es un buffer que tiene el dato en la primer posición
+            imagenes.push({ id, path: urlClodinaryImgs + path, principal: principal[0] === 1 ? true : false })
           }
         }
         return {
@@ -130,7 +130,7 @@ const createProduct = async (req = request, res = response, next) => {
       return {
         id: image.id,
         path: urlClodinaryImgs + image.path,
-        principal: image.principal === 1 ? true : false
+        principal: image.principal[0] === 1 ? true : false
       }
     });
 
@@ -229,7 +229,7 @@ const updateProduct = async (req = request, res = response, next) => {
     let [imagesDB] = await con.execute('SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC', [idProducto]);
     imagesDB = imagesDB.map(imageDB => { // cambio valores numericos de principal por valores booleanos
       const { id, path, principal } = imageDB;
-      return { id, path, principal: principal === 1 ? true : false };
+      return { id, path, principal: principal[0] === 1 ? true : false };
     })
     const indexedImagesDB = indexArrayToObject(imagesDB, 'id');
 
@@ -345,11 +345,11 @@ const updateProduct = async (req = request, res = response, next) => {
     const [imagesRows] = await con.execute(`SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC`, [idProducto]);
 
     // construir la esctructura del objeto imagenesProducto
-    const imagenesProducto = imagesRows.map(image => {
+    const imagenesProducto = imagesRows.map(imageDB => {
       return {
-        id: image.id,
-        path: urlClodinaryImgs + image.path,
-        principal: image.principal === 1 ? true : false
+        id: imageDB.id,
+        path: urlClodinaryImgs + imageDB.path,
+        principal: imageDB.principal[0] === 1 ? true : false
       }
     });
 

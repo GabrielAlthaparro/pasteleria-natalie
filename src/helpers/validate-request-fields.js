@@ -39,6 +39,7 @@ const validateRequestFields = (req = request, res = response, next) => {
           ...expressValidatorErrors,
           ...customErrors
         ];
+        console.log(requestErrors);
         res.status(400).json(requestErrors);
       }
     }

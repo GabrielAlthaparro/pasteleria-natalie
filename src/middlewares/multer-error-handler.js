@@ -1,9 +1,9 @@
 const multerErrorHandler = (param, cantidadMaximaArchivos) => {
   return (err, req, res, next) => {
-    console.log(err);
+    console.log(err.code);
     if (err && req.customError?.status === undefined) { // si no ocurrio previamente un error especial
       let error;
-      if (err.code === 'LIMIT_FILE_COUNT') {
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
         const msg = {
           text: `Solo se pueden subir hasta ${cantidadMaximaArchivos} imágenes juntas. Para agregar más, debe hacerlo en otra petición`,
           type: 'red'

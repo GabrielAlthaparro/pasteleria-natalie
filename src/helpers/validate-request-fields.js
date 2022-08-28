@@ -29,17 +29,17 @@ const validateRequestFields = (req = request, res = response, next) => {
       // sino, que tipo de error personalizado ocurrio?
       const { status } = customError;
       if (status !== undefined) { // si ocurrio algun error especial
-        
+
         const { msg } = customError;
         res.status(status).json({ msg });
       } else { // sino solo ocurrieron bad requests
-        
+
         const { errors: customErrors } = customError;
         const requestErrors = [
           ...expressValidatorErrors,
           ...customErrors
         ];
-        console.log(requestErrors);
+        time.sleep(3);
         res.status(400).json(requestErrors);
       }
     }

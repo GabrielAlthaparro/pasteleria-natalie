@@ -1,21 +1,26 @@
-const multerErrorHandler = (param, cantidadMaximaArchivos) => {
+const formidable = import('formidable');
+const { endRequest } = require('./request');
+
+
+const formidableErrorHandler = cantidadMaximaArchivos => {
   return (err, req, res, next) => {
     console.log(err);
-    if (err && req.customError?.status === undefined) { // si no ocurrio previamente un error especial
+    if (req.customError?.status === undefined) { // si no ocurrio previamente un error especial
       let error;
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      if (err.code === 1015) {
         const msg = {
           text: `Solo se pueden subir hasta ${cantidadMaximaArchivos} imágenes juntas. Para agregar más, debe hacerlo en otra petición`,
           type: 'red'
         }
-        error = { msg, location: 'body', param };
+        error = { msg };
       } else {
         const msg = {
-          text: 'Se están recibiendo archivos en un campo incorrecto',
+          text: 'Formulario inválido',
           type: 'red'
         }
-        error = { msg, location: 'body', param: err.field };
+        error = { msg };
       }
+
       if (req.customError === null) { // si no hay previos errores por bad request
         req.customError = { errors: [error] };
       } else { // si ya existen otros errores por bad requests
@@ -26,4 +31,4 @@ const multerErrorHandler = (param, cantidadMaximaArchivos) => {
   };
 };
 
-module.exports = multerErrorHandler;
+module.exports = formidableErrorHandler;

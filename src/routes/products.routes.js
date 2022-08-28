@@ -8,7 +8,6 @@ const upload = multer(
     dest: './src/uploads',
     limits: {
       fileSize: 5242880, // cada archivo puede pesar máximo 5mb
-      files: CANTIDAD_ARCHIVOS_PERMITIDOS // cuantos archivos puede tener cada campor de file
     }
   });
 

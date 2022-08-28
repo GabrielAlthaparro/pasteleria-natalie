@@ -5,7 +5,7 @@ const multerErrorHandler = (param, cantidadMaximaArchivos) => {
       let error;
       if (err.code === 'LIMIT_UNEXPECTED_FILE') {
         const msg = {
-          text: `Solo se pueden subir hasta ${cantidadMaximaArchivos} imágenes juntas. Para agregar más, debe hacerlo en otra petición`,
+          text: `No se puede subir más de ${cantidadMaximaArchivos}`,
           type: 'red'
         }
         error = { msg, location: 'body', param };

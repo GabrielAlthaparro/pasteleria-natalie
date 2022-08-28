@@ -45,7 +45,28 @@ const validateReqFilesExtensions = (param, validExtensions) => {
   };
 }
 
+const validateReqMaxFiles = (param, cantidadMaxima) => {
+  return (req = request, res = response, next) => {
+    const { files = [] } = req;
+    if (files.length > cantidadMaxima) {
+      const msg = {
+        text: `No se pueden subir más de ${cantidadMaxima} fotos en una sola petición`,
+        type: 'red'
+      };
+      if (req.customError?.status === undefined) { // si no ocurrio previamente un error especial
+        if (req.customError === null) { // si no hay errores previos por bad request
+          req.customError = { errors: [{ msg, param, location: 'body' }] };
+        } else {
+          req.customError.errors.push({ msg, param, location: 'body' });
+        }
+      }
+    }
+    next();
+  }
+}
+
 module.exports = {
   validateReqFilesNotEmpty,
-  validateReqFilesExtensions
+  validateReqFilesExtensions,
+  validateReqMaxFiles
 }

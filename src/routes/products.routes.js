@@ -17,7 +17,8 @@ const {
   validateReqFilesNotEmpty,
   validateReqFilesExtensions,
   validateJWT,
-  multerErrorHandler
+  multerErrorHandler,
+  validateReqMaxFiles
 } = require('../middlewares')
 
 const { validateExistsIdTipo, validateExistsIdProduct, validateArrayImagenes, validateIDsNotRepeatInArray, } = require('../helpers/validators');
@@ -56,8 +57,12 @@ router.post('/', [
     .trim(),
   validateJWT,
 
-  upload.array('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
+  upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
   multerErrorHandler('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  validateReqFilesNotEmpty('imagenes'),
+  validateReqMaxFiles('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  validateReqFilesExtensions('imagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
+
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
@@ -78,9 +83,6 @@ router.post('/', [
     .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('La descripción tiene caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
-  validateReqFilesNotEmpty('imagenes'),
-  validateReqFilesExtensions('imagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
-
   validateRequestFields
 ], createProduct);
 
@@ -99,7 +101,8 @@ router.put('/:id', [
     .custom(validateExistsIdProduct),
 
   upload.array('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
-  multerErrorHandler('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  multerErrorHandler('nuevasImagenes'),
+  validateReqMaxFiles('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
   body('nombre', 'Nombre inválido')

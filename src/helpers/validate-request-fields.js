@@ -39,7 +39,6 @@ const validateRequestFields = (req = request, res = response, next) => {
           ...expressValidatorErrors,
           ...customErrors
         ];
-        time.sleep(3);
         res.status(400).json(requestErrors);
       }
     }

@@ -1,25 +1,16 @@
-const multerErrorHandler = (param, cantidadMaximaArchivos) => {
+const multer = require('multer');
+const multerErrorHandler = (param) => {
   return (err, req, res, next) => {
     console.log(err.code);
-    if (err && req.customError?.status === undefined) { // si no ocurrio previamente un error especial
-      let error;
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-        const msg = {
-          text: `No se puede subir más de ${cantidadMaximaArchivos}`,
-          type: 'red'
-        }
-        error = { msg, location: 'body', param };
-      } else {
-        const msg = {
-          text: 'Se están recibiendo archivos en un campo incorrecto',
-          type: 'red'
-        }
-        error = { msg, location: 'body', param: err.field };
+    if (err instanceof multer.MulterError && req.customError?.status === undefined) { // si no ocurrio previamente un error especial
+      const msg = {
+        text: 'Se están recibiendo archivos en un campo incorrecto',
+        type: 'red'
       }
       if (req.customError === null) { // si no hay previos errores por bad request
-        req.customError = { errors: [error] };
+        req.customError = { errors: [{ msg }] };
       } else { // si ya existen otros errores por bad requests
-        req.customError.errors.push(error);
+        req.customError.errors.push({ msg });
       }
     }
     next();

@@ -6,6 +6,7 @@ const {
   validateJWT,
 } = require('../middlewares')
 
+const { validateIDsNotRepeatInArray, validateExistsProducts, validateExistsIdMessage, validateExistsMessageAndIfWasSeen } = require('../helpers/validators');
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -14,7 +15,6 @@ const {
   updateMessage,
   deleteMessage
 } = require('../controllers/messages.controller');
-const { validateIDsNotRepeatInArray } = require('../helpers/validators');
 
 const router = Router();
 
@@ -30,7 +30,6 @@ router.get('/', [
 
 
 router.post('/', [
-
   body('email', 'Email inválido')
     .exists().bail().withMessage('El email es obligatorio')
     .customSanitizer(value => value.toString())
@@ -49,21 +48,54 @@ router.post('/', [
     .trim()
     .toLowerCase()
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
-  body('productos', 'Envíe los productos que desea')
-    .exists().bail()
-    .isArray({ min: 1 }),
-
   body('productos.*.id', 'IDs de productos inválidos')
     .isInt({ min: 1 }).bail()
     .toInt(),
   body('productos.*.cantidad', 'Cantidad de productos inválidos')
     .isInt({ min: 1 }).bail()
     .toInt(),
-  body('productos', 'IDs de productos están repetidos')
+  body('productos', 'Productos inválidos')
+    .exists().bail().withMessage('Envíe los productos que desea')
+    .isArray({ min: 1 }).bail()
     .if(body('productos.*.id').isInt({ min: 1 }))
-    .custom(validateIDsNotRepeatInArray),
+    .custom(validateIDsNotRepeatInArray).bail()
+    .custom(validateExistsProducts),
 
   validateRequestFields
 ], createMessage);
+
+
+router.put('/:id', [
+  header('token', 'Token no enviado')
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString())
+    .trim(),
+  validateJWT,
+
+  param('id', 'ID inválido')
+    .notEmpty().bail().withMessage('El ID no puede estar vacío')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
+    .toInt()
+    .custom(validateExistsMessageAndIfWasSeen).bail(),
+
+  validateRequestFields
+], updateMessage);
+
+
+router.delete('/:id', [
+  header('token', 'Token no enviado')
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString())
+    .trim(),
+  validateJWT,
+
+  param('id', 'ID inválido')
+    .notEmpty().bail().withMessage('El ID no puede estar vacío')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
+    .toInt()
+    .custom(validateExistsIdMessage),
+
+  validateRequestFields
+], deleteMessage);
 
 module.exports = router;

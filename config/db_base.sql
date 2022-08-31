@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 31-08-2022 a las 04:20:41
+-- Tiempo de generación: 31-08-2022 a las 23:44:31
 -- Versión del servidor: 5.7.31
 -- Versión de PHP: 7.4.9
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `imagenes` (
   `principal` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `id_producto_ibfk` (`id_producto`)
-) ENGINE=InnoDB AUTO_INCREMENT=496604 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=496606 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -50,9 +50,9 @@ CREATE TABLE IF NOT EXISTS `mensajes` (
   `nombre` varchar(70) COLLATE utf8_spanish_ci NOT NULL,
   `aclaraciones` text COLLATE utf8_spanish_ci,
   `fecha` varchar(10) COLLATE utf8_spanish_ci NOT NULL,
-  `visto` bit(1) NOT NULL DEFAULT b'0',
+  `estado` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `productos` (
   `descripcion` varchar(255) COLLATE utf8_spanish_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `tipo_ibfk` (`id_tipo`)
-) ENGINE=InnoDB AUTO_INCREMENT=50355 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=50356 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 

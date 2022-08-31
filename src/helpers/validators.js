@@ -74,13 +74,13 @@ const validateExistsIdMessage = async (id, { req }) => {
 
 const validateExistsMessageAndIfWasSeen = async (id, { req }) => {
   const { con } = req;
-  const query = 'SELECT visto FROM mensajes WHERE id = ?';
+  const query = 'SELECT estado FROM mensajes WHERE id = ?';
   const params = [id];
   try {
     const [rows] = await con.execute(query, params);
     if (rows.length === 0) throw `No existe un mensaje registrado con el ID ${id}`;
     const [message] = rows;
-    if (message.visto[0] === 1) throw 'El mensaje ya esta marcado como visto';
+    if (message.estado !== 0) throw 'El mensaje ya se abrio';
   } catch (err) {
     console.log(err);
     if (err.sql === undefined) { // si no fue un error de sql

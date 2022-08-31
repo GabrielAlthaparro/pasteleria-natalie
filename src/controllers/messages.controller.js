@@ -6,7 +6,7 @@ const getMessages = async (req = request, res = response, next) => {
   const { con } = req;
 
   try {
-    const qGetMessages = 'SELECT id, email, nombre, aclaraciones, fecha, visto FROM mensajes m';
+    const qGetMessages = 'SELECT id, email, nombre, aclaraciones, fecha, estado FROM mensajes m';
     const [messagesRows] = await con.query(qGetMessages);
     if (messagesRows.length === 0) { res.json([]); next(); return }
 
@@ -39,12 +39,11 @@ const getMessages = async (req = request, res = response, next) => {
         return { nombre, idTipo, cantidad, path: urlClodinaryImgs + path };
       })
 
-      let { visto, aclaraciones, ...messageData } = message;
+      let { aclaraciones, ...messageData } = message;
       if (aclaraciones === null) aclaraciones = '';
       return {
         ...messageData,
         aclaraciones,
-        visto: visto[0],
         productosConsultados
       };
     }));
@@ -134,7 +133,7 @@ const updateMessage = async (req = request, res = response, next) => {
   const { con } = req;
   const { id: idMensaje } = req.params;
   try {
-    const qUpdateMessage = 'UPDATE mensajes SET visto = 1 WHERE id = ?'
+    const qUpdateMessage = 'UPDATE mensajes SET estado = 1 WHERE id = ?'
     const pUpdateMessage = [idMensaje];
     const [updateMessageResult] = await con.execute(qUpdateMessage, pUpdateMessage);
     if (updateMessageResult.affectedRows === 0) throw 'Error al editar el mensaje en BD';
@@ -158,7 +157,7 @@ const deleteMessage = async (req = request, res = response, next) => {
     const [deleteMessageResult] = await con.execute(qDeleteMessage, pDeleteMessage);
     if (deleteMessageResult.affectedRows === 0) throw 'Error al borrar el mensaje en BD';
 
-    const msg = { text: 'Mensaje borrado correctamente', type: 'red' };
+    const msg = { text: 'Mensaje borrado correctamente', type: 'green' };
     res.json({ msg });
 
   } catch (err) {

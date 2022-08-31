@@ -11,7 +11,7 @@ const upload = multer(
     }
   });
 
-const { header, param, body } = require('express-validator');
+const { header, param, query, body } = require('express-validator');
 
 const {
   validateReqFilesNotEmpty,
@@ -33,21 +33,21 @@ const {
 
 const router = Router();
 
-
 router.get('/', [
-  body('nombre', 'Nombre inválido')
-    .exists({ checkNull: true }).bail()
-    .customSanitizer(value => value.toString())
-    .trim()
-    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
-    .isLength({ max: 50 }).bail().withMessage('Ingrese un nombre con menos de 50 caracteres'),
-  body('tipo', 'Tipo inválido').optional()
+  query('page', 'Páginación inválida').optional()
+    .notEmpty().bail()
+    .isInt({ min: 1 }).bail().withMessage('La página debe ser un número natural')
+    .toInt(),
+  query('tipo', 'Tipo inválido').optional()
+    .notEmpty().bail()
     .isInt({ min: 1 }).bail()
     .toInt()
     .custom(validateExistsIdTipo),
-  body('page', 'Páginación inválida').optional()
-    .isInt({ min: 1 }).bail().withMessage('La página debe ser un número natural')
-    .toInt(),
+  query('nombre', 'Nombre inválido').optional()
+    .notEmpty().bail()
+    .customSanitizer(value => value.toString()).trim()
+    .matches(/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
+    .isLength({ max: 50 }).bail().withMessage('Ingrese un nombre con menos de 50 caracteres'),
 
   validateRequestFields
 ], getProducts);
@@ -56,8 +56,7 @@ router.get('/', [
 router.post('/', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString())
-    .trim(),
+    .customSanitizer(value => value.toString()).trim(),
   validateJWT,
 
   upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
@@ -68,9 +67,8 @@ router.post('/', [
 
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
-    .customSanitizer(value => value.toString())
-    .trim()
-    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
+    .customSanitizer(value => value.toString()).trim()
+    .matches(/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('tipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
@@ -79,8 +77,7 @@ router.post('/', [
     .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
-    .customSanitizer(value => value.toString())
-    .trim()
+    .customSanitizer(value => value.toString()).trim()
     .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/).bail().withMessage('La descripción tiene caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
@@ -91,8 +88,7 @@ router.post('/', [
 router.put('/:id', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString())
-    .trim(),
+    .customSanitizer(value => value.toString()).trim(),
   validateJWT,
 
   param('id', 'ID inválido')
@@ -108,10 +104,9 @@ router.put('/:id', [
 
   body('nombre', 'Nombre inválido')
     .notEmpty().bail().withMessage('El nombre es obligatorio')
-    .customSanitizer(value => value.toString())
-    .trim()
+    .customSanitizer(value => value.toString()).trim()
     .toLowerCase()
-    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/g).bail().withMessage('Caracteres inválidos')
+    .matches(/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/g).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('idTipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
@@ -120,14 +115,13 @@ router.put('/:id', [
     .custom(validateExistsIdTipo),
   body('descripcion', 'Descripción inválida')
     .notEmpty().bail().withMessage('Ingrese una descripción')
-    .customSanitizer(value => value.toString())
-    .trim()
+    .customSanitizer(value => value.toString()).trim()
     .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   body('imagenes', 'Imágenes inválidas')
     .notEmpty().bail().withMessage('El array de imágenes existentes no puede estar vacío')
-    .customSanitizer(value => value.toString())
+    .customSanitizer(value => value.toString()).trim()
     .isJSON({ allow_primitives: true }).bail().withMessage('Imágenes inválidas, se esperaba un JSON')
     .customSanitizer(value => JSON.parse(value))
     .isArray().bail(),
@@ -151,8 +145,7 @@ router.put('/:id', [
 router.delete('/:id', [
   header('token', 'Token no enviado')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString())
-    .trim(),
+    .customSanitizer(value => value.toString()).trim(),
   validateJWT,
 
   param('id', 'ID inválido')

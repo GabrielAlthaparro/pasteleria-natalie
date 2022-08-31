@@ -1,5 +1,4 @@
 const { request, response } = require('express');
-const mysql = require('mysql2/promise');
 
 const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 const {
@@ -16,9 +15,9 @@ const getProducts = async (req = request, res = response, next) => {
   const { con } = req;
   const {
     tipo = null,
-    nombre = '',
+    nombre = null,
     page = 1,
-  } = req.body;
+  } = req.query;
 
   const CANTIDAD_POR_PAGINA = 15;
 
@@ -28,17 +27,17 @@ const getProducts = async (req = request, res = response, next) => {
   qGetProductos += 'FROM (productos p INNER JOIN tipos t on p.id_tipo = t.id)';
   const pGetProductos = [];
 
-  if (tipo !== null || nombre !== '') {
+  if (tipo !== null || nombre !== null) {
     qGetProductos += ' WHERE';
     if (tipo !== null) {
       qGetProductos += ' p.id_tipo = ?';
       pGetProductos.push(tipo);
-      if (nombre !== '') {
+      if (nombre !== null) {
         qGetProductos += ' AND nombre LIKE ?';
         pGetProductos.push(`%${nombre}%`);
       }
     } else {
-      if (nombre !== '') {
+      if (nombre !== null) {
         qGetProductos += ` nombre LIKE ?`;
         pGetProductos.push(`%${nombre}%`);
       }

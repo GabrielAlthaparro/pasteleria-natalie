@@ -40,9 +40,8 @@ router.get('/', [
     .toInt(),
   query('tipo', 'Tipo inválido').optional()
     .notEmpty().bail()
-    .isInt({ min: 1 }).bail()
-    .toInt()
-    .custom(validateExistsIdTipo),
+    .isInt({ min: 0 }).bail()
+    .toInt(),
   query('nombre', 'Nombre inválido').optional()
     .notEmpty().bail()
     .customSanitizer(value => value.toString()).trim()

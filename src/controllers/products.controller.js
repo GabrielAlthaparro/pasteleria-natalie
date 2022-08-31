@@ -18,37 +18,38 @@ const getProducts = async (req = request, res = response, next) => {
     nombre = null,
     page = 1,
   } = req.query;
+  try {
+    // const [tiposRows] = await con.execute('SELECT 1 FROM tipos WHERE id = ?', [tipo]);
+    // if (tiposRows.length === 0) { res.json([]); next(); return };
 
-  const CANTIDAD_POR_PAGINA = 15;
+    const CANTIDAD_POR_PAGINA = 15;
+    let qGetProductos = '';
+    qGetProductos += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
+    qGetProductos += 'p.id_tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
+    qGetProductos += 'FROM (productos p INNER JOIN tipos t on p.id_tipo = t.id)';
+    const pGetProductos = [];
 
-  let qGetProductos = '';
-  qGetProductos += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
-  qGetProductos += 'p.id_tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
-  qGetProductos += 'FROM (productos p INNER JOIN tipos t on p.id_tipo = t.id)';
-  const pGetProductos = [];
-
-  if (tipo !== null || nombre !== null) {
-    qGetProductos += ' WHERE';
-    if (tipo !== null) {
-      qGetProductos += ' p.id_tipo = ?';
-      pGetProductos.push(tipo);
-      if (nombre !== null) {
-        qGetProductos += ' AND nombre LIKE ?';
-        pGetProductos.push(`%${nombre}%`);
-      }
-    } else {
-      if (nombre !== null) {
-        qGetProductos += ` nombre LIKE ?`;
-        pGetProductos.push(`%${nombre}%`);
+    if (tipo !== null || nombre !== null) {
+      qGetProductos += ' WHERE';
+      if (tipo !== null) {
+        qGetProductos += ' p.id_tipo = ?';
+        pGetProductos.push(tipo);
+        if (nombre !== null) {
+          qGetProductos += ' AND nombre LIKE ?';
+          pGetProductos.push(`%${nombre}%`);
+        }
+      } else {
+        if (nombre !== null) {
+          qGetProductos += ` nombre LIKE ?`;
+          pGetProductos.push(`%${nombre}%`);
+        }
       }
     }
-  }
 
-  qGetProductos += ` LIMIT ${CANTIDAD_POR_PAGINA} OFFSET ?`;
-  const offset = (page - 1) * CANTIDAD_POR_PAGINA;
-  pGetProductos.push(offset);
+    qGetProductos += ` LIMIT ${CANTIDAD_POR_PAGINA} OFFSET ?`;
+    const offset = (page - 1) * CANTIDAD_POR_PAGINA;
+    pGetProductos.push(offset);
 
-  try {
     let productos = [];
     const [productsRows] = await con.execute(qGetProductos, pGetProductos);
     if (productsRows.length !== 0) { // si hay productos

@@ -19,25 +19,23 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-let pool;
+const pool = mysql.createPool(config);
+
+pool.on('connection', connection => {
+  console.log('Connection %d connected', connection.threadId);
+});
+pool.on('acquire', connection => {
+  console.log('Connection %d acquired', connection.threadId);
+});
+pool.on('enqueue', () => {
+  console.log('Waiting for available connection slot');
+});
+pool.on('release', connection => {
+  console.log('Connection %d released', connection.threadId);
+});
 
 const getPool = () => {
-  if (!pool) {
-    pool = mysql.createPool(config);
-
-    pool.on('connection', connection => {
-      console.log('Connection %d connected', connection.threadId);
-    });
-    pool.on('acquire', connection => {
-      console.log('Connection %d acquired', connection.threadId);
-    });
-    pool.on('enqueue', () => {
-      console.log('Waiting for available connection slot');
-    });
-    pool.on('release', connection => {
-      console.log('Connection %d released', connection.threadId);
-    });
-  }
   return pool;
 };
+
 module.exports = getPool;

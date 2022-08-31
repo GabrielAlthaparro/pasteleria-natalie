@@ -1,13 +1,11 @@
 const { request, response } = require('express');
-const { indexArrayToObjectWhitArray } = require('../helpers/indexArray');
+const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 
 const getMessages = async (req = request, res = response, next) => {
   const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
-
   const { con } = req;
 
   try {
-
     const qGetMessages = 'SELECT id, email, nombre, aclaraciones, fecha, visto FROM mensajes m';
     const [messagesRows] = await con.query(qGetMessages);
     if (messagesRows.length === 0) { res.json([]); next(); return }
@@ -18,7 +16,7 @@ const getMessages = async (req = request, res = response, next) => {
     const indexedMessagesProducts = indexArrayToObjectWhitArray(messagesProductsRows, 'idMensaje');
 
     let qGetProducts = '';
-    qGetProducts += 'SELECT p.id AS id, nombre, tipo AS idTipo, path ';
+    qGetProducts += 'SELECT p.id AS id, nombre, id_tipo AS idTipo, path ';
     qGetProducts += 'FROM productos p INNER JOIN imagenes m ON (p.id = m.id_producto AND m.principal = 1) '
     qGetProducts += 'WHERE p.id IN (';
     const pGetProducts = [];
@@ -29,11 +27,13 @@ const getMessages = async (req = request, res = response, next) => {
     qGetProducts = qGetProducts.substring(0, qGetProducts.length - 1) + ')';
     const [productsRows] = await con.execute(qGetProducts, pGetProducts);
     if (productsRows.length === 0) throw 'No existen los productos referenciados por los mensajes';
-
     const messages = messagesRows.map((message => {
-      const filteredProductsByMessage = productsRows.filter(product => indexedMessagesProducts[message.id].find(messageProduct => messageProduct.idProducto === product.id));
+      const filteredProductsForMessage = productsRows.filter(product => {
+        const productInMessage = indexedMessagesProducts[message.id].find(messageProduct => messageProduct.idProducto === product.id);
+        return (productInMessage !== undefined) ? true : false;
+      });
 
-      const productosConsultados = filteredProductsByMessage.map(product => {
+      const productosConsultados = filteredProductsForMessage.map(product => {
         const { nombre, idTipo, path } = product;
         const cantidad = indexedMessagesProducts[message.id].find(messageProduct => messageProduct.idProducto === product.id).cantidad;
         return { nombre, idTipo, cantidad, path: urlClodinaryImgs + path };
@@ -86,21 +86,27 @@ const createMessage = async (req = request, res = response, next) => {
       pInsertMessage.push(aclaraciones);
     }
     qInsertMessage += ') VALUES (?, ?, ?' + (aclaraciones !== null ? ', ?' : '') + ')';
-
     const [insertMessageResult] = await con.execute(qInsertMessage, pInsertMessage);
     const { insertId: idMensaje } = insertMessageResult;
     if (insertMessageResult.affectedRows === 0) throw 'Error al registar el mensaje en DB';
 
     let qInsertIntoMensajesProductos = 'INSERT INTO mensajes_productos (id_mensaje, id_producto, cantidad) VALUES';
-    for (let i = 0; i < productos.length; i++) {
+    const pInsertIntoMensajesProductos = [];
+    const { productsDB } = req; // Ya se habia hecho la consulta en las validaciones
+    const indexedProductsDB = indexArrayToObject(productsDB, 'id');
+    const qUpdateCantConsultasProduct = 'UPDATE productos SET cantidad_consultas = ? WHERE id = ?';
+    for (const product of productos) {
       qInsertIntoMensajesProductos += ' (?, ?, ?),';
+      pInsertIntoMensajesProductos.push(idMensaje, product.id, product.cantidad);
+
+      // Actualizar cantidad de consultas del producto en tabla productos
+      const oldCantidadConsultas = indexedProductsDB[product.id].cantidad_consultas;
+      const pUpdateCantConsultasProduct = [oldCantidadConsultas + product.cantidad, product.id];
+      const [insertMessageResult] = await con.execute(qUpdateCantConsultasProduct, pUpdateCantConsultasProduct);
+      if (insertMessageResult.affectedRows === 0) throw 'Error al editar cantidad de consultas de producto ' + product.id;
     }
 
     qInsertIntoMensajesProductos = qInsertIntoMensajesProductos.substring(0, qInsertIntoMensajesProductos.length - 1);
-    const pInsertIntoMensajesProductos = productos.reduce((acc, product) => {
-      acc.push(idMensaje, product.id, product.cantidad);
-      return acc;
-    }, []);
     const [insertMensajesProductosResult] = await con.execute(qInsertIntoMensajesProductos, pInsertIntoMensajesProductos);
     if (insertMensajesProductosResult.affectedRows === 0) throw 'Error al registrar en la tabla de mensajes_productos';
 
@@ -112,7 +118,12 @@ const createMessage = async (req = request, res = response, next) => {
 
   } catch (err) {
     console.log(err);
-    await con.rollback();
+    try {
+      await con.rollback();
+    } catch (err) {
+      console.log(err);
+      console.log('Fallo rollback');
+    }
     const msg = { text: 'Error al realizar la consulta, intente nuevamente', type: 'red' };
     res.status(500).json({ msg });
   }
@@ -141,8 +152,9 @@ const deleteMessage = async (req = request, res = response, next) => {
   const { con } = req;
   const { id: idMensaje } = req.params;
   try {
-    const qDeleteMessage = 'DELETE FROM mensajes WHERE id = ?'
+    const qDeleteMessage = 'DELETE FROM mensajes WHERE id = ?';
     const pDeleteMessage = [idMensaje];
+    // por clave foranea se borran tambien los filas en mensajes_productos asociadas a ese mensaje
     const [deleteMessageResult] = await con.execute(qDeleteMessage, pDeleteMessage);
     if (deleteMessageResult.affectedRows === 0) throw 'Error al borrar el mensaje en BD';
 

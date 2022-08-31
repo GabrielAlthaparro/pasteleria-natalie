@@ -35,15 +35,18 @@ const router = Router();
 
 
 router.get('/', [
+  body('nombre', 'Nombre inválido')
+    .exists({ checkNull: true }).bail()
+    .customSanitizer(value => value.toString())
+    .trim()
+    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
+    .isLength({ max: 50 }).bail().withMessage('Ingrese un nombre con menos de 50 caracteres'),
   body('tipo', 'Tipo inválido').optional()
     .isInt({ min: 1 }).bail()
     .toInt()
     .custom(validateExistsIdTipo),
-  body('offset', 'Offset inválido').optional()
-    .isInt({ min: 1 }).bail()
-    .toInt(),
-  body('limite', 'Límite inválido').optional()
-    .isInt({ min: 1 }).bail()
+  body('page', 'Páginación inválida').optional()
+    .isInt({ min: 1 }).bail().withMessage('La página debe ser un número natural')
     .toInt(),
 
   validateRequestFields
@@ -67,8 +70,7 @@ router.post('/', [
     .notEmpty().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
     .trim()
-    .toLowerCase()
-    .matches(/^[a-zñ0-9 ]*$/g).bail().withMessage('El nombre tiene caracteres inválidos')
+    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/).bail().withMessage('El nombre tiene caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('tipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
@@ -79,8 +81,7 @@ router.post('/', [
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
     .trim()
-    .toLowerCase()
-    .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('La descripción tiene caracteres inválidos')
+    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/).bail().withMessage('La descripción tiene caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   validateRequestFields
@@ -110,7 +111,7 @@ router.put('/:id', [
     .customSanitizer(value => value.toString())
     .trim()
     .toLowerCase()
-    .matches(/^[a-zñ0-9 ]*$/g).bail().withMessage('Caracteres inválidos')
+    .matches(/^[a-zA-Z1-9ñÑáéíóúÁÉÍÓÚüÜ ]*$/g).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 50 }).bail().withMessage('Máximo 50 caracteres'),
   body('idTipo', 'Tipo inválido')
     .notEmpty().bail().withMessage('El tipo es obligatorio')
@@ -121,8 +122,7 @@ router.put('/:id', [
     .notEmpty().bail().withMessage('Ingrese una descripción')
     .customSanitizer(value => value.toString())
     .trim()
-    .toLowerCase()
-    .matches(/^[a-zñáéíóúü0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
+    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/).bail().withMessage('Caracteres inválidos')
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   body('imagenes', 'Imágenes inválidas')
@@ -136,7 +136,7 @@ router.put('/:id', [
   body('imagenes.*.principal').isBoolean().bail().withMessage('Campo principal en imágen inválido').toBoolean(),
 
   body('imagenes', 'Imágenes inválidas')
-    .if(body('imagenes').isInt({ min: 1 }))
+    .if(body('imagenes.*.id').isInt({ min: 1 }))
     .custom(validateIDsNotRepeatInArray).bail().withMessage('Se enviaron imágenes con IDs repetidos'),
 
   body('imagenes', 'Imágenes inválidas')

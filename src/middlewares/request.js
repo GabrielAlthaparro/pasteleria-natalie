@@ -10,7 +10,7 @@ const startRequest = async (req = request, res = response, next) => {
   } catch (err) {
     console.log(err);
     console.log('Se intento conectar un usuario pero db no anda');
-    res.sendStatus(500);
+    res.sendStatus(503);
   }
 };
 
@@ -19,8 +19,8 @@ const endRequest = async (req, res, next) => {
   try {
     con.release();
   } catch (err) {
-    console.log('Error al liberar la conexión');
     console.log(err);
+    console.log('Error al liberar la conexión');
   }
   if (!routedOk) next();
 }

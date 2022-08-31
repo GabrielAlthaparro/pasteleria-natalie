@@ -1,4 +1,5 @@
 const { request, response } = require('express');
+const mysql = require('mysql2/promise');
 
 const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 const {
@@ -12,44 +13,57 @@ const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/uploa
 // https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
 
 const getProducts = async (req = request, res = response, next) => {
+  const { con } = req;
   const {
     tipo = null,
-    offset = null,
-    limite = null
+    nombre = '',
+    page = 1,
   } = req.body;
 
-  const { con } = req;
+  const CANTIDAD_POR_PAGINA = 15;
 
-  let queryGetProductos = '';
-  queryGetProductos += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
-  queryGetProductos += 'p.tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
-  queryGetProductos += 'FROM (productos p join tipos t on p.tipo = t.id)';
+  let qGetProductos = '';
+  qGetProductos += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
+  qGetProductos += 'p.id_tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
+  qGetProductos += 'FROM (productos p INNER JOIN tipos t on p.id_tipo = t.id)';
+  const pGetProductos = [];
 
-  const paramsGetProductos = [];
-
-  if (tipo !== null) {
-    queryGetProductos += ' WHERE p.tipo = ?';
-    paramsGetProductos.push(tipo);
-  }
-  if (limite !== null) {
-    queryGetProductos += ' LIMIT ?';
-    paramsGetProductos.push(limite);
-    if (offset !== null) {
-      queryGetProductos += ' OFFSET ?';
-      paramsGetProductos.push(offset);
+  if (tipo !== null || nombre !== '') {
+    qGetProductos += ' WHERE';
+    if (tipo !== null) {
+      qGetProductos += ' p.id_tipo = ?';
+      pGetProductos.push(tipo);
+      if (nombre !== '') {
+        qGetProductos += ' AND nombre LIKE ?';
+        pGetProductos.push(`%${nombre}%`);
+      }
+    } else {
+      if (nombre !== '') {
+        qGetProductos += ` nombre LIKE ?`;
+        pGetProductos.push(`%${nombre}%`);
+      }
     }
   }
 
+  qGetProductos += ` LIMIT ${CANTIDAD_POR_PAGINA} OFFSET ?`;
+  const offset = (page - 1) * CANTIDAD_POR_PAGINA;
+  pGetProductos.push(offset);
+
   try {
     let productos = [];
-
-    const [productsRows] = await con.execute(queryGetProductos, paramsGetProductos);
+    const [productsRows] = await con.execute(qGetProductos, pGetProductos);
     if (productsRows.length !== 0) { // si hay productos
 
-      const queryGetImagenes = 'SELECT * FROM imagenes ORDER BY principal DESC';
-      const [imagesRows] = await con.execute(queryGetImagenes);
-      const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
+      let qGetImagenes = 'SELECT * FROM imagenes WHERE id_producto IN (';
+      const pGetImagenes = [];
+      for (const product of productsRows) {
+        qGetImagenes += ' ?,'
+        pGetImagenes.push(product.id);
+      }
+      qGetImagenes = qGetImagenes.substring(0, qGetImagenes.length - 1) + ') ORDER BY principal DESC';
+      const [imagesRows] = await con.execute(qGetImagenes, pGetImagenes);
 
+      const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
       productos = productsRows.map(producto => {
         const imagenes = [];
         if (indexedImages[producto.id] !== undefined) {
@@ -88,10 +102,10 @@ const createProduct = async (req = request, res = response, next) => {
     await con.beginTransaction();
 
     // TABLA PRODUCTOS
-    const queryProducto = 'INSERT INTO `productos` (`nombre`, `tipo`, `descripcion`) VALUES (?, ?, ?)';
-    const paramsProducto = [nombre, tipo, descripcion];
+    const qInsertProduct = 'INSERT INTO `productos` (`nombre`, `id_tipo`, `descripcion`) VALUES (?, ?, ?)';
+    const pInsertProduct = [nombre, tipo, descripcion];
 
-    const [productResults] = await con.execute(queryProducto, paramsProducto);
+    const [productResults] = await con.execute(qInsertProduct, pInsertProduct);
     const { insertId: idProducto, affectedRows: productAffectedRows } = productResults;
     if (productAffectedRows === 0) throw 'Error al crear registro en la tabla de productos';
 
@@ -101,8 +115,8 @@ const createProduct = async (req = request, res = response, next) => {
     const { public_id, secure_url: urlImgPrincipal } = await saveImgCloudinary(imgPath);
     uploadedImagesCloudinary.push(public_id);
 
-    let queryImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?),';
-    const paramsImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
+    let qInsertImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?),';
+    const pInsertImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
 
     if (receivedImages.length !== 0) {
       for (const secondaryImg of receivedImages) {
@@ -110,20 +124,19 @@ const createProduct = async (req = request, res = response, next) => {
         const { public_id, secure_url: urlSecondaryImg } = await saveImgCloudinary(imgPath);
         uploadedImagesCloudinary.push(public_id);
 
-        queryImages += ' (?, ?, ?),';
-        paramsImages.push(idProducto, getImgUrlDB(urlSecondaryImg), 0);
+        qInsertImages += ' (?, ?, ?),';
+        pInsertImages.push(idProducto, getImgUrlDB(urlSecondaryImg), 0);
       }
     }
-    queryImages = queryImages.substring(0, queryImages.length - 1); // borrar la coma al final de la query
+    qInsertImages = qInsertImages.substring(0, qInsertImages.length - 1); // borrar la coma al final de la query
 
     // guardar imagenes
-    const [results] = await con.execute(queryImages, paramsImages);
-    const { affectedRows } = results;
-    if (affectedRows === 0) throw `Error al guardar imagenes en db`;
+    const [insertImagesResults] = await con.execute(qInsertImages, pInsertImages);
+    if (insertImagesResults.affectedRows === 0) throw `Error al guardar imagenes en BD`;
 
     // select para obtener los ids de las imagenes en BD
     const [imagesRows] = await con.execute(`SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC`, [idProducto]);
-    if (imagesRows.length === 0) throw 'Se recibieron las imagenes pero ocurrio un error al guardarlas para leerlas de la db';
+    if (imagesRows.length === 0) throw 'Se recibieron las imágenes pero ocurrio un error al leerlas de la BD';
 
     // construir la esctructura del objeto imagenesProducto
     const imagenesProducto = imagesRows.map(image => {
@@ -189,54 +202,49 @@ const updateProduct = async (req = request, res = response, next) => {
   const receivedImages = [...files]; // hago una copia para no tocar el files, para poder borrar los buffers temporales después
   const uploadedImagesCloudinary = []; // por si ocurre algun error al crear producto, para borrar las imagenes que cree en cloudinary
 
-  let queryGetProduct = '';
-  queryGetProduct += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
-  queryGetProduct += 'p.tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
-  queryGetProduct += 'FROM (productos p join tipos t on p.tipo = t.id) WHERE p.id = ?';
-  const paramsGetProducto = [idProducto];
-
   try {
-    await con.beginTransaction();
-    const [productsRows] = await con.execute(queryGetProduct, paramsGetProducto);
-    if (productsRows.length === 0) throw 'No se encuentra el producto en la DB';
-    const [productDB] = productsRows;
 
-    let queryUpdateProduct = 'UPDATE productos SET';
-    const paramsUpdateProduct = [];
+    const productDB = req.productDB;
+
+    let qUpdateProduct = 'UPDATE productos SET';
+    const pUpdateProduct = [];
 
     if (productDB.nombre !== nombre) {
-      queryUpdateProduct += ' nombre = ?,';
-      paramsUpdateProduct.push(nombre);
+      qUpdateProduct += ' nombre = ?,';
+      pUpdateProduct.push(nombre);
     }
-    if (productDB.idTipo !== idTipo) {
-      queryUpdateProduct += ' tipo = ?,';
-      paramsUpdateProduct.push(idTipo);
+    if (productDB.id_tipo !== idTipo) {
+      qUpdateProduct += ' id_tipo = ?,';
+      pUpdateProduct.push(idTipo);
     }
     if (productDB.descripcion !== descripcion) {
-      queryUpdateProduct += ' descripcion = ?,';
-      paramsUpdateProduct.push(descripcion);
+      qUpdateProduct += ' descripcion = ?,';
+      pUpdateProduct.push(descripcion);
     }
 
-    if (paramsUpdateProduct.length !== 0) { // si hay que editar algun dato del producto en tabla productos
-      queryUpdateProduct = queryUpdateProduct.substring(0, queryUpdateProduct.length - 1); // borrar la coma del final de la query
-      queryUpdateProduct += ' WHERE id = ?';
-      paramsUpdateProduct.push(idProducto);
-      const [results] = await con.execute(queryUpdateProduct, paramsUpdateProduct);
-      const { affectedRows } = results;
-      if (affectedRows === 0) throw `Error al editar los datos del producto`;
+    await con.beginTransaction();
+
+    if (pUpdateProduct.length !== 0) { // si hay que editar algun dato del producto en tabla productos
+      qUpdateProduct = qUpdateProduct.substring(0, qUpdateProduct.length - 1); // borrar la coma del final
+      qUpdateProduct += ' WHERE id = ?';
+      pUpdateProduct.push(idProducto);
+      const [updateProductResults] = await con.execute(qUpdateProduct, pUpdateProduct);
+      if (updateProductResults.affectedRows === 0) throw `Error al editar los datos del producto`;
     }
 
-    let [imagesDB] = await con.execute('SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC', [idProducto]);
+    const qGetImagenes = 'SELECT id, path, principal FROM imagenes WHERE id_producto = ? ORDER BY principal DESC';
+    const pGetImagenes = [idProducto];
+    let [imagesDB] = await con.execute(qGetImagenes, pGetImagenes);
     imagesDB = imagesDB.map(imageDB => { // cambio valores numericos de principal por valores booleanos
-      const { id, path, principal } = imageDB;
-      return { id, path, principal: principal[0] === 1 ? true : false };
-    })
+      const { principal, ...imageData } = imageDB;
+      return { ...imageData, principal: principal[0] === 1 ? true : false };
+    });
     const indexedImagesDB = indexArrayToObject(imagesDB, 'id');
 
     // verificar que los ids enviados existen en DB
-    imagenes.forEach(imagen => {
-      if (indexedImagesDB[imagen.id] === undefined) throw 'ID recibido no existe en la db';
-    });
+    for (const imagen of imagenes) {
+      if (indexedImagesDB[imagen.id] === undefined) throw { status: 410, text: 'Las imágenes enviadas no se encuentran en BD' };
+    }
 
     const indexedReceivedImages = indexArrayToObject(imagenes, 'id');
     const oldImgPrincipal = imagesDB[0];
@@ -244,20 +252,18 @@ const updateProduct = async (req = request, res = response, next) => {
       if (indexedReceivedImages[oldImgPrincipal.id].principal === false) { // si vieja img principal ahora tinene que ser secundaria
 
         // vieja imágen principal pasa a ser secundaria
-        const queryUpdateImgPrincipalToSecondary = 'UPDATE imagenes SET principal = 0 WHERE id = ?';
-        const paramsUpdateImgPrincipalToSecondary = [oldImgPrincipal.id] // img principal pasa a ser secundaria
-        const [updateImgPrincipalToSecondaryResult] = await con.execute(queryUpdateImgPrincipalToSecondary, paramsUpdateImgPrincipalToSecondary);
-        const { affectedRows: affectedRowsUpdateOldPrincipalImage } = updateImgPrincipalToSecondaryResult;
-        if (affectedRowsUpdateOldPrincipalImage === 0) throw 'Error al editar imágen principal para ser secundaria';
+        const qUpdateImgPrincipalToSecondary = 'UPDATE imagenes SET principal = 0 WHERE id = ?';
+        const pUpdateImgPrincipalToSecondary = [oldImgPrincipal.id] // img principal pasa a ser secundaria
+        const [updateImgPrincipalToSecondaryResult] = await con.execute(qUpdateImgPrincipalToSecondary, pUpdateImgPrincipalToSecondary);
+        if (updateImgPrincipalToSecondaryResult.affectedRows === 0) throw 'Error al editar imágen principal para ser secundaria';
 
         if (imagenes[0].principal) { // si la nueva imagen principal esta en el array imagenes
 
           // imágen secundaria pasa a ser principal
-          const queryUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
-          const paramsUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
-          const [updateImgSecondaryToPrincipalResult] = await con.execute(queryUpdateImgSecondaryToPrincipal, paramsUpdateImgSecondaryToPrincipal);
-          const { affectedRows: affectedRowsUpdateOldSecondaryImage } = updateImgSecondaryToPrincipalResult;
-          if (affectedRowsUpdateOldSecondaryImage === 0) throw 'Error al editar imágen secundaria para ser principal';
+          const qUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
+          const pUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
+          const [updateImgSecondaryToPrincipalResult] = await con.execute(qUpdateImgSecondaryToPrincipal, pUpdateImgSecondaryToPrincipal);
+          if (updateImgSecondaryToPrincipalResult.affectedRows === 0) throw 'Error al editar imágen secundaria para ser principal';
 
         } else { // sino, la nueva imagen principal está en el array de nuevas imagenes
 
@@ -268,22 +274,20 @@ const updateProduct = async (req = request, res = response, next) => {
           uploadedImagesCloudinary.push(public_id);
 
           // guardar en DB
-          const queryImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
-          const paramsImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
-          const [insertImgPrincipalResult] = await con.execute(queryImages, paramsImages);
-          const { affectedRows } = insertImgPrincipalResult;
-          if (affectedRows === 0) throw `Error al crear la nueva imágen en la DB`;
+          const qInsertImgPrincipal = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
+          const pInsertImgPrincipal = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
+          const [insertImgPrincipalResult] = await con.execute(qInsertImgPrincipal, pInsertImgPrincipal);
+          if (insertImgPrincipalResult.affectedRows === 0) throw `Error al crear la nueva imágen en la DB`;
         }
       } // sino, la imágen principal no cambio, y no tengo que hacer nada
 
     } else { // sino, se borro la imagen principal, ahora necesito buscar en que array esta la nueva imágen principal
 
       if (imagenes.length !== 0 && imagenes[0].principal) { // la nueva img principal es una foto existente, en el array de imagenes
-        const queryUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
-        const paramsUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
-        const [updateImgSecondaryToPrincipalResult] = await con.execute(queryUpdateImgSecondaryToPrincipal, paramsUpdateImgSecondaryToPrincipal);
-        const { affectedRows: affectedRowsUpdateOldSecondaryImage } = updateImgSecondaryToPrincipalResult;
-        if (affectedRowsUpdateOldSecondaryImage === 0) throw 'Error al editar imágen secundaria para ser principal';
+        const qUpdateImgSecondaryToPrincipal = 'UPDATE imagenes SET principal = 1 WHERE id = ?';
+        const pUpdateImgSecondaryToPrincipal = [imagenes[0].id]; // img secundaria pasa a ser principal
+        const [updateImgSecondaryToPrincipalResult] = await con.execute(qUpdateImgSecondaryToPrincipal, pUpdateImgSecondaryToPrincipal);
+        if (updateImgSecondaryToPrincipalResult.affectedRows === 0) throw 'Error al editar imágen secundaria para ser principal';
 
       } else { // la nueva principal esta en el array de nuevas fotos
 
@@ -294,48 +298,45 @@ const updateProduct = async (req = request, res = response, next) => {
         uploadedImagesCloudinary.push(public_id);
 
         // guardar en DB
-        const queryImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
-        const paramsImages = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
-        const [insertImgPrincipalResult] = await con.execute(queryImages, paramsImages);
-        const { affectedRows } = insertImgPrincipalResult;
-        if (affectedRows === 0) throw `Error al crear la nueva imágen en la DB`;
+        const qInsertImgPrincipal = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES (?, ?, ?)';
+        const pInsertImgPrincipal = [idProducto, getImgUrlDB(urlImgPrincipal), 1];
+        const [insertImgPrincipalResult] = await con.execute(qInsertImgPrincipal, pInsertImgPrincipal);
+        if (insertImgPrincipalResult.affectedRows === 0) throw `Error al crear la nueva imágen en la DB`;
       }
     }
 
     // borrar imagenes que no esten en el array imagenes
-    let queryDeleteImages = 'DELETE FROM imagenes WHERE id IN (';
-    const paramsDeleteImages = [];
+    let qDeleteImages = 'DELETE FROM imagenes WHERE id IN (';
+    const pDeleteImages = [];
     for (const imageDB of imagesDB) {
-      if (indexedReceivedImages[imageDB.id] === undefined) { // no existe la imagen de la DB en el array de imagenes
+      if (indexedReceivedImages[imageDB.id] === undefined) { // si no existe la imagen de la DB en el array de imagenes, la borro
         await deleteImgCloudinary(getPublicIdFromCloudinaryImageUrl(urlClodinaryImgs + imageDB.path));
-        queryDeleteImages += ' ?,';
-        paramsDeleteImages.push(imageDB.id);
+        qDeleteImages += ' ?,';
+        pDeleteImages.push(imageDB.id);
       }
     }
-    if (paramsDeleteImages.length !== 0) { // si hay que borrar alguna imagen
-      queryDeleteImages = queryDeleteImages.substring(0, queryDeleteImages.length - 1) + ')'; // borrar coma, y agregar parentesis final
-      const [deleteResult] = await con.execute(queryDeleteImages, paramsDeleteImages);
-      const { affectedRows: deleteAffectedRows } = deleteResult;
-      if (deleteAffectedRows === 0) throw 'No se borraron las imágenes de la db';
+    if (pDeleteImages.length !== 0) { // si hay que borrar alguna imagen
+      qDeleteImages = qDeleteImages.substring(0, qDeleteImages.length - 1) + ')'; // borrar coma, y agregar parentesis final
+      const [deleteImagesResult] = await con.execute(qDeleteImages, pDeleteImages);
+      if (deleteImagesResult.affectedRows === 0) throw 'No se borraron las imágenes de la db';
     }
 
     // agregar las nuevas imágenes secundarias a la tabla imágenes, si hay
     if (receivedImages.length !== 0) {
-      let queryInsertImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES';
-      const paramsInsertImages = [];
+      let qInsertImages = 'INSERT INTO `imagenes` (id_producto, path, principal) VALUES';
+      const pInsertImages = [];
       for (const secondaryImg of receivedImages) {
         const { path: imgPath } = secondaryImg;
         const { public_id, secure_url: urlSecondaryImg } = await saveImgCloudinary(imgPath);
         uploadedImagesCloudinary.push(public_id);
 
-        queryInsertImages += ' (?, ?, ?),';
-        paramsInsertImages.push(idProducto, getImgUrlDB(urlSecondaryImg), 0);
+        qInsertImages += ' (?, ?, ?),';
+        pInsertImages.push(idProducto, getImgUrlDB(urlSecondaryImg), 0);
       }
-      queryInsertImages = queryInsertImages.substring(0, queryInsertImages.length - 1); // borrar la coma al final de la query
+      qInsertImages = qInsertImages.substring(0, qInsertImages.length - 1); // borrar la coma al final de la query
       // guardar imagenes
-      const [results] = await con.execute(queryInsertImages, paramsInsertImages);
-      const { affectedRows } = results;
-      if (affectedRows === 0) throw `Error al guardar imagenes en db`;
+      const [insertImagesResults] = await con.execute(qInsertImages, pInsertImages);
+      if (insertImagesResults.affectedRows === 0) throw `Error al guardar imagenes en db`;
     }
 
     // si no hubo ningun error
@@ -373,14 +374,25 @@ const updateProduct = async (req = request, res = response, next) => {
 
   } catch (err) {
     console.log(err);
-    await con.rollback();
+    try {
+      await con.rollback();
+    } catch (err) {
+      console.log(err);
+      console.log('Fallo rollback');
+    }
     if (uploadedImagesCloudinary.length !== 0) {
       for (const public_id of uploadedImagesCloudinary) {
         await deleteImgCloudinary(public_id);
       }
     }
-    const msg = { text: 'Error al editar producto, intente nuevamente', type: 'red' };
-    res.status(500).json({ msg })
+    if (err.status !== undefined) { // Si el error es un error especial
+      const msg = { text: err.text, type: 'red' };
+      res.status(err.status).json({ msg });
+
+    } else {
+      const msg = { text: 'Error al editar producto, intente nuevamente', type: 'red' };
+      res.status(500).json({ msg });
+    }
   }
 
   deleteTmpFilesBuffers(files);
@@ -392,25 +404,39 @@ const deleteProduct = async (req = request, res = response, next) => {
   const { con } = req;
 
   try {
-    // borrar imágenes de cloudinary
-    const queryGetProductImages = 'SELECT path FROM imagenes WHERE id_producto = ?';
-    const paramsGetProductImages = [idProducto];
-    const [productImages] = await con.execute(queryGetProductImages, paramsGetProductImages);
-    for (const image of productImages) {
+    await con.beginTransaction();
+
+    // obtengo las imagenes del producto
+    const qGetImages = 'SELECT path FROM imagenes WHERE id_producto = ?';
+    const pGetImages = [idProducto];
+    const [imagesRows] = await con.execute(qGetImages, pGetImages);
+
+    // borrar producto e imagenes de DB
+    const qDeleteProduct = 'DELETE FROM productos where id = ?'; // por clave foránea se borran las imgs de la tabla imagenes
+    const pDeleteProduct = [idProducto];
+
+    // borro el producto
+    try {
+      const [resultDeleteProduct] = await con.execute(qDeleteProduct, pDeleteProduct);
+      console.log(resultDeleteProduct);
+      if (resultDeleteProduct.affectedRows === 0) throw 'Error al borrar producto de la base de datos';
+    } catch (err) {
+      if (err.errno === 1451) {
+        throw { status: 409, text: 'No se puede borrar el producto porque hay mensajes que lo solicitan' };
+      } else {
+        throw err;
+      }
+    }
+
+    // borrar imágenes de Cloudinary
+    for (const image of imagesRows) {
       const completeUrlImg = urlClodinaryImgs + image.path;
       const public_id_img = getPublicIdFromCloudinaryImageUrl(completeUrlImg);
       await deleteImgCloudinary(public_id_img);
     }
 
-    // borrar producto e imagenes de DB
-    const queryDeleteProduct = 'DELETE FROM productos where id = ?'; // por clave foránea se borran las imgs de la tabla imagenes
-    const paramsDeleteProduct = [idProducto];
-
-    const [resultDeleteProduct] = await con.execute(queryDeleteProduct, paramsDeleteProduct);
-    const { affectedRows } = resultDeleteProduct;
-    if (affectedRows === 0) throw 'Error al borrar producto de la base de datos, las imágenes en la nube si se borraron';
-
     // si no ocurrio ningún error
+    await con.commit();
     const msg = {
       text: 'Producto borrado correctamente',
       type: 'green'
@@ -419,11 +445,21 @@ const deleteProduct = async (req = request, res = response, next) => {
 
   } catch (err) {
     console.log(err);
-    const msg = {
-      text: 'Error al borrar el producto, intente nuevamente',
-      type: 'red'
-    };
-    res.status(500).json({ msg })
+    try {
+      await con.rollback();
+    } catch (err) {
+      console.log(err);
+      console.log('Fallo rollback');
+    }
+
+    if (err.status !== undefined) { // Si el error es un error especial
+      const msg = { text: err.text, type: 'red' };
+      res.status(err.status).json({ msg });
+
+    } else {
+      const msg = { text: 'Error al borrar el producto, intente nuevamente', type: 'red' };
+      res.status(500).json({ msg })
+    }
   }
   next();
 };

@@ -1,3 +1,5 @@
+const { request } = require("express");
+
 const validateExistsIdTipo = async (tipo, { req }) => {
   const { con } = req;
   const query = 'SELECT * FROM `tipos` WHERE id = ?';
@@ -17,30 +19,31 @@ const validateExistsIdTipo = async (tipo, { req }) => {
 
 const validateExistsIdProduct = async (id, { req }) => {
   const { con } = req;
-  const query = 'SELECT id FROM `productos` WHERE id = ?';
+  const query = 'SELECT * FROM productos WHERE id = ?';
   const params = [id];
   try {
     const [results] = await con.execute(query, params);
     if (results.length === 0) throw `No existe un producto registrado con el ID ${id}`;
+    req.productDB = results[0];
   } catch (err) {
     console.log(err);
     if (err.sql === undefined) { // si no fue un error de sql
       throw err; // disparo mi error para el express validator
     } else {
-      req.customError = { status: 500, msg: 'Error interno al validar el tipo de producto' };
+      req.customError = { status: 500, msg: 'Error interno al validar si existe el producto solicitado' };
     }
   }
 };
 
-const validateExistsProducts = async (products, { req }) => {
+const validateExistsProducts = async (products, { req = request }) => {
   const { con } = req;
-  console.log('hola');
-  let qGetProducts = 'SELECT id FROM productos WHERE id IN ( ';
+  let qGetProducts = 'SELECT * FROM productos WHERE id IN ( ';
   qGetProducts += products.reduce(acc => acc + '?,', ''); // agregar el texto '?,' por cada producto recibido
   qGetProducts = qGetProducts.substring(0, qGetProducts.length - 1) + ')'; // borrar coma del final y cerrar parentesis
   const pGetProducts = products.map(product => product.id);
   const [productsRows] = await con.execute(qGetProducts, pGetProducts);
   if (productsRows.length !== products.length) throw 'Los productos que solicita son incorrectos';
+  req.productsDB = productsRows;
 };
 
 const validateArrayImagenes = (imagenes, { req }) => {

@@ -23,6 +23,10 @@ const getProducts = async (req = request, res = response, next) => {
     // if (tiposRows.length === 0) { res.json([]); next(); return };
 
     const CANTIDAD_POR_PAGINA = 15;
+
+    let qGetCountProducts = 'SELECT COUNT(1) AS cantidadTotalProductos FROM productos p INNER JOIN tipos t on p.id_tipo = t.id';
+    const pGetCountProducts = [];
+
     let qGetProductos = '';
     qGetProductos += 'SELECT p.id AS id, nombre,p.descripcion AS descripcion, ';
     qGetProductos += 'p.id_tipo AS idTipo, t.descripcion AS tipo, p.cantidad_consultas AS cantidadConsultas ';
@@ -30,16 +34,23 @@ const getProducts = async (req = request, res = response, next) => {
     const pGetProductos = [];
 
     if (tipo !== null || nombre !== null) {
+      qGetCountProducts += ' WHERE';
       qGetProductos += ' WHERE';
       if (tipo !== null) {
+        qGetCountProducts += ' p.id_tipo = ?';
+        pGetCountProducts.push(tipo);
         qGetProductos += ' p.id_tipo = ?';
         pGetProductos.push(tipo);
         if (nombre !== null) {
+          qGetCountProducts += ' AND nombre LIKE ?';
+          pGetCountProducts.push(`%${nombre}%`);
           qGetProductos += ' AND nombre LIKE ?';
           pGetProductos.push(`%${nombre}%`);
         }
       } else {
         if (nombre !== null) {
+          qGetCountProducts += ` nombre LIKE ?`;
+          pGetCountProducts.push(`%${nombre}%`);
           qGetProductos += ` nombre LIKE ?`;
           pGetProductos.push(`%${nombre}%`);
         }
@@ -79,7 +90,11 @@ const getProducts = async (req = request, res = response, next) => {
       });
     }
 
-    res.json(productos);
+    const [[productsCount]] = await con.execute(qGetCountProducts, pGetCountProducts);
+    const { cantidadTotalProductos } = productsCount;
+    const cantProductosQueQuedan = cantidadTotalProductos - offset;
+    const nextPage = cantProductosQueQuedan > CANTIDAD_POR_PAGINA ? true : false;
+    res.json({ cantidadTotalProductos, nextPage, productos });
 
   } catch (err) {
     console.log(err);

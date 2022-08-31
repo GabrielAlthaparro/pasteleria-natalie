@@ -43,7 +43,7 @@ const getProducts = async (req = request, res = response, next) => {
       }
     }
 
-    qGetProductos += ` LIMIT ${CANTIDAD_POR_PAGINA + 1} OFFSET ?`; // me traigo un producto más, si existe
+    qGetProductos += ` ORDER BY cantidadConsultas DESC LIMIT ${CANTIDAD_POR_PAGINA + 1} OFFSET ?`; // me traigo un producto más, si existe
     const offset = (page - 1) * CANTIDAD_POR_PAGINA;
     pGetProductos.push(offset);
 
@@ -68,7 +68,7 @@ const getProducts = async (req = request, res = response, next) => {
       qGetImagenes = qGetImagenes.substring(0, qGetImagenes.length - 1) + ') ORDER BY principal DESC';
       const [imagesRows] = await con.execute(qGetImagenes, pGetImagenes);
       const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
-      
+
       productos = productsRows.map(producto => {
         const imagenes = [];
         if (indexedImages[producto.id] !== undefined) {

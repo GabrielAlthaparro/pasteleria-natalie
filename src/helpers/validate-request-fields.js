@@ -1,8 +1,9 @@
 const { request, response } = require('express');
 const { validationResult } = require('express-validator');
-const { deleteTmpFilesBuffers } = require('./files');
+const { endRequest } = require('../middlewares');
 
 const validateRequestFields = (req = request, res = response, next) => {
+  req.routedOk = true;
   const errorFormatter = ({ location, msg, param, value, nestedErrors }) => {
     const format = {
       msg: {
@@ -24,7 +25,7 @@ const validateRequestFields = (req = request, res = response, next) => {
     if (customError === null) {
       // si no ocurrio ningun error personalizado
       res.status(400).json(expressValidatorErrors);
-
+      console.log(expressValidatorErrors[0]);
     } else {
       // sino, que tipo de error personalizado ocurrio?
       const { status } = customError;
@@ -40,24 +41,16 @@ const validateRequestFields = (req = request, res = response, next) => {
           ...customErrors
         ];
         res.status(400).json(requestErrors);
+        console.log(requestErrors[0]);
       }
     }
-
-    const { con, files } = req;
-    try {
-      con.release();
-    } catch (err) {
-      console.log('Error al liberar la conexión');
-      console.log(err);
-    }
-
-    if (files !== undefined) deleteTmpFilesBuffers(files);
+    // si hubo algun error en las validaciones
+    endRequest(req, res, next);
     return;
   }
 
   // si no hubo ningun tipo de error en las validaciones
-  req.routedOk = true;
   next();
 }
 
-module.exports = validateRequestFields
+module.exports = validateRequestFields;

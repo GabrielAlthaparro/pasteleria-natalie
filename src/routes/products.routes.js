@@ -59,7 +59,7 @@ router.post('/', [
   validateJWT,
 
   upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
-  multerErrorHandler('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  multerErrorHandler(),
   validateReqFilesNotEmpty('imagenes'),
   validateReqMaxFiles('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   validateReqFilesExtensions('imagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
@@ -96,9 +96,9 @@ router.put('/:id', [
     .toInt()
     .custom(validateExistsIdProduct),
 
-  upload.array('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
-  multerErrorHandler('nuevasImagenes'),
-  validateReqMaxFiles('imagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
+  upload.array('nuevasImagenes'),
+  multerErrorHandler(),
+  validateReqMaxFiles('nuevasImagenes', CANTIDAD_ARCHIVOS_PERMITIDOS),
   validateReqFilesExtensions('nuevasImagenes', ['jpg', 'png', 'jpeg', 'webp', 'gif']),
 
   body('nombre', 'Nombre inválido')

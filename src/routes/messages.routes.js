@@ -40,13 +40,13 @@ router.post('/', [
     .exists().bail().withMessage('El nombre es obligatorio')
     .customSanitizer(value => value.toString())
     .trim()
-    .matches(/^[a-zñÑáéíóúÁÉÍÓÚüÜ ]*$/i)
+    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ ]*$/)
     .isLength({ min: 3, max: 70 }).bail().withMessage('El nombre debe tener entre 3 y 70 letras'),
   body('aclaraciones', 'Texto de aclaración inválido')
     .optional()
     .customSanitizer(value => value.toString())
     .trim()
-    .toLowerCase()
+    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/)
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
   body('productos.*.id', 'IDs de productos inválidos')
     .isInt({ min: 1 }).bail()
@@ -73,10 +73,10 @@ router.put('/:id', [
   validateJWT,
 
   param('id', 'ID inválido')
-    .notEmpty().bail().withMessage('El ID no puede estar vacío')
     .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
     .toInt()
-    .custom(validateExistsMessageAndIfWasSeen).bail(),
+    .custom(validateExistsIdMessage).bail()
+    .custom((value, { req }) => req.messageDB.estado === 0 ? true : false).bail().withMessage('Ya se abrio está solicitud'),
 
   validateRequestFields
 ], updateMessage);

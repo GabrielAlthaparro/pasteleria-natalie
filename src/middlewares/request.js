@@ -1,3 +1,5 @@
+const { deleteTmpFilesBuffers } = require("../helpers/files");
+
 const startRequest = async (req = request, res = response, next) => {
   try {
     const getPool = req.app.get('getPool');
@@ -15,13 +17,15 @@ const startRequest = async (req = request, res = response, next) => {
 };
 
 const endRequest = async (req, res, next) => {
-  const { con, routedOk } = req;
+  const { con, routedOk, files } = req;
   try {
     con.release();
   } catch (err) {
     console.log(err);
     console.log('Error al liberar la conexión');
   }
+  if (files !== undefined) deleteTmpFilesBuffers(files);
+
   if (!routedOk) next();
 }
 

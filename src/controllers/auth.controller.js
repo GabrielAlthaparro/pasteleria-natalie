@@ -6,7 +6,7 @@ const signIn = async (req, res, next) => {
   const { password: receivedPassword } = req.body;
   const { con } = req;
   try {
-    const queryGetUser = 'SELECT mail, nombre, apellido, password FROM user';
+    const queryGetUser = 'SELECT email, nombre, apellido, password FROM user';
     const [results] = await con.execute(queryGetUser);
     const [user] = results; // porque solo hay un usuario
 
@@ -22,9 +22,9 @@ const signIn = async (req, res, next) => {
         text: 'Sesión iniciada correctamente',
         type: 'green'
       };
-      const { mail, nombre, apellido } = user;
-      const userPublicData = { mail, nombre, apellido };
-      const token = await generateJWT(mail);
+      const { email, nombre, apellido } = user;
+      const userPublicData = { email, nombre, apellido };
+      const token = await generateJWT(email);
       res.json({ msg, user: userPublicData, token });
     }
   } catch (err) {

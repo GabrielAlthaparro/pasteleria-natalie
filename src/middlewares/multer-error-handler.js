@@ -1,5 +1,5 @@
 const multer = require('multer');
-const multerErrorHandler = (param) => {
+const multerErrorHandler = () => {
   return (err, req, res, next) => {
     console.log(err.code);
     if (err instanceof multer.MulterError && req.customError?.status === undefined) { // si no ocurrio previamente un error especial

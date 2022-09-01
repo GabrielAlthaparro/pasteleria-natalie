@@ -28,6 +28,7 @@ app.use(reqBodyStringToJSON); // si era un texto, lo paso a JSON y lo guardo en 
 app.use('/api/products', require('./routes/products.routes'));
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/messages', require('./routes/messages.routes'));
+app.use('/api/emails', require('./routes/emails.routes'));
 
 app.use(endRequest);
 

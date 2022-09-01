@@ -24,10 +24,10 @@ const validateJWT = async (req = request, res = response, next) => {
     return;
   }
 
-  let { id: mail } = payload;
+  let { id: email } = payload;
   const { con } = req;
-  const queryGetUser = 'SELECT mail, nombre, apellido FROM user WHERE mail = ?';
-  const paramsGetUser = [mail];
+  const queryGetUser = 'SELECT email, nombre, apellido FROM user WHERE email = ?';
+  const paramsGetUser = [email];
   try {
     const [results] = await con.execute(queryGetUser, paramsGetUser);
     if (results.length === 0) throw 'ID verificado, pero usuario no se encuentra en la Base de Datos';

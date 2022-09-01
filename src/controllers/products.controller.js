@@ -3,7 +3,6 @@ const { request, response } = require('express');
 const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 const {
   saveImgCloudinary,
-  deleteTmpFilesBuffers,
   deleteImgCloudinary,
   getPublicIdFromCloudinaryImageUrl,
   getImgUrlDB } = require('../helpers/files');
@@ -194,7 +193,6 @@ const createProduct = async (req = request, res = response, next) => {
       type: 'red'
     });
   }
-  deleteTmpFilesBuffers(files);
   next();
 };
 
@@ -400,7 +398,6 @@ const updateProduct = async (req = request, res = response, next) => {
     }
   }
 
-  deleteTmpFilesBuffers(files);
   next();
 };
 

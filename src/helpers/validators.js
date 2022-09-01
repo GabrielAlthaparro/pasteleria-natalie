@@ -57,30 +57,12 @@ const validateArrayImagenes = (imagenes, { req }) => {
 
 const validateExistsIdMessage = async (id, { req }) => {
   const { con } = req;
-  const query = 'SELECT id FROM mensajes WHERE id = ?';
+  const query = 'SELECT * FROM mensajes WHERE id = ?';
   const params = [id];
   try {
-    const [rows] = await con.execute(query, params);
-    if (rows.length === 0) throw `No existe un mensaje registrado con el ID ${id}`;
-  } catch (err) {
-    console.log(err);
-    if (err.sql === undefined) { // si no fue un error de sql
-      throw err; // disparo mi error para el express validator
-    } else {
-      req.customError = { status: 500, msg: 'Error interno al validar si existe el mensaje' };
-    }
-  }
-};
-
-const validateExistsMessageAndIfWasSeen = async (id, { req }) => {
-  const { con } = req;
-  const query = 'SELECT estado FROM mensajes WHERE id = ?';
-  const params = [id];
-  try {
-    const [rows] = await con.execute(query, params);
-    if (rows.length === 0) throw `No existe un mensaje registrado con el ID ${id}`;
-    const [message] = rows;
-    if (message.estado !== 0) throw 'El mensaje ya se abrio';
+    const [messageRows] = await con.execute(query, params);
+    if (messageRows.length === 0) throw `No existe un mensaje registrado con el ID ${id}`;
+    req.messageDB = messageRows[0];
   } catch (err) {
     console.log(err);
     if (err.sql === undefined) { // si no fue un error de sql
@@ -105,7 +87,6 @@ module.exports = {
   validateExistsIdTipo,
   validateExistsIdProduct,
   validateExistsIdMessage,
-  validateExistsMessageAndIfWasSeen,
   validateArrayImagenes,
   validateIDsNotRepeatInArray,
   validateExistsProducts

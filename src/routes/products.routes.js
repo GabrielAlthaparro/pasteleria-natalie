@@ -16,12 +16,17 @@ const { header, param, query, body } = require('express-validator');
 const {
   validateReqFilesNotEmpty,
   validateReqFilesExtensions,
-  validateJWT,
   multerErrorHandler,
   validateReqMaxFiles
 } = require('../middlewares')
 
-const { validateExistsIdTipo, validateExistsIdProduct, validateArrayImagenes, validateIDsNotRepeatInArray, } = require('../helpers/validators');
+const {
+  validateExistsIdTipo,
+  validateExistsIdProduct,
+  validateArrayImagenes,
+  validateIDsNotRepeatInArray,
+  validateJWT, } = require('../helpers/validators');
+
 const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
@@ -53,10 +58,11 @@ router.get('/', [
 
 
 router.post('/', [
-  header('token', 'Token no enviado')
+  header('token', 'Token inválido')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()).trim(),
-  validateJWT,
+    .isJWT().bail().withMessage('JWT inválido')
+    .customSanitizer(value => value.toString()).trim()
+    .custom(validateJWT),
 
   upload.array('imagenes'), // aca se cargan los campos de texto también, o sea todos los campos del body del formdata, si no mandan ningun campo, entonces req.files = undefined
   multerErrorHandler(),
@@ -85,13 +91,13 @@ router.post('/', [
 
 
 router.put('/:id', [
-  header('token', 'Token no enviado')
+  header('token', 'Token inválido')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()).trim(),
-  validateJWT,
+    .isJWT().bail().withMessage('JWT inválido')
+    .customSanitizer(value => value.toString()).trim()
+    .custom(validateJWT),
 
   param('id', 'ID inválido')
-    .notEmpty().bail().withMessage('El ID no puede estar vacío')
     .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
     .toInt()
     .custom(validateExistsIdProduct),
@@ -142,13 +148,13 @@ router.put('/:id', [
 
 
 router.delete('/:id', [
-  header('token', 'Token no enviado')
+  header('token', 'Token inválido')
     .notEmpty().bail()
-    .customSanitizer(value => value.toString()).trim(),
-  validateJWT,
+    .isJWT().bail().withMessage('JWT inválido')
+    .customSanitizer(value => value.toString()).trim()
+    .custom(validateJWT),
 
   param('id', 'ID inválido')
-    .notEmpty().bail().withMessage('El ID no puede estar vacío')
     .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
     .toInt()
     .custom(validateExistsIdProduct),

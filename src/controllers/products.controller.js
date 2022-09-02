@@ -94,13 +94,78 @@ const getProducts = async (req = request, res = response, next) => {
   next();
 };
 
+const deleteProduct = async (req = request, res = response, next) => {
+  const { id: idProducto } = req.params;
+  const { con } = req;
+
+  try {
+    await con.beginTransaction();
+
+    // obtengo las imagenes del producto
+    const qGetImages = 'SELECT path FROM imagenes WHERE id_producto = ?';
+    const pGetImages = [idProducto];
+    const [imagesRows] = await con.execute(qGetImages, pGetImages);
+
+    // borrar producto e imagenes de DB
+    const qDeleteProduct = 'DELETE FROM productos where id = ?'; // por clave foránea se borran las imgs de la tabla imagenes
+    const pDeleteProduct = [idProducto];
+
+    // borro el producto
+    try {
+      const [resultDeleteProduct] = await con.execute(qDeleteProduct, pDeleteProduct);
+      if (resultDeleteProduct.affectedRows === 0) throw 'Error al borrar producto de la base de datos';
+    } catch (err) {
+      if (err.errno === 1451) {
+        throw { status: 409, text: 'No se puede borrar el producto porque hay mensajes que lo solicitan' };
+      } else {
+        throw err;
+      }
+    }
+
+    // borrar imágenes de Cloudinary
+    for (const image of imagesRows) {
+      const completeUrlImg = urlClodinaryImgs + image.path;
+      const public_id_img = getPublicIdFromCloudinaryImageUrl(completeUrlImg);
+      await deleteImgCloudinary(public_id_img);
+    }
+
+    // si no ocurrio ningún error
+    await con.commit();
+    const msg = {
+      text: 'Producto borrado correctamente',
+      type: 'green'
+    };
+    res.json({ msg });
+
+  } catch (err) {
+    console.log(err);
+    try {
+      await con.rollback();
+    } catch (err) {
+      console.log(err);
+      console.log('Fallo rollback');
+    }
+
+    if (err.status !== undefined) { // Si el error es un error especial
+      const msg = { text: err.text, type: 'red' };
+      res.status(err.status).json({ msg });
+
+    } else {
+      const msg = { text: 'Error al borrar el producto, intente nuevamente', type: 'red' };
+      res.status(500).json({ msg })
+    }
+  }
+  next();
+};
+
+const uploadedImagesCloudinary = []; // por si ocurre algun error al crear producto, para borrar las imagenes que cree en cloudinary
+
 const createProduct = async (req = request, res = response, next) => {
   const { nombre, tipo, descripcion } = req.body;
   const { files } = req;
   const { con } = req;
 
   const receivedImages = [...files]; // hago una copia para no tocar el files, para poder borrar los buffers temporales después
-  const uploadedImagesCloudinary = []; // por si ocurre algun error al crear producto, para borrar las imagenes que cree en cloudinary
 
   try {
     await con.beginTransaction();
@@ -203,7 +268,6 @@ const updateProduct = async (req = request, res = response, next) => {
   const { con } = req;
 
   const receivedImages = [...files]; // hago una copia para no tocar el files, para poder borrar los buffers temporales después
-  const uploadedImagesCloudinary = []; // por si ocurre algun error al crear producto, para borrar las imagenes que cree en cloudinary
 
   try {
 
@@ -401,73 +465,9 @@ const updateProduct = async (req = request, res = response, next) => {
   next();
 };
 
-const deleteProduct = async (req = request, res = response, next) => {
-  const { id: idProducto } = req.params;
-  const { con } = req;
-
-  try {
-    await con.beginTransaction();
-
-    // obtengo las imagenes del producto
-    const qGetImages = 'SELECT path FROM imagenes WHERE id_producto = ?';
-    const pGetImages = [idProducto];
-    const [imagesRows] = await con.execute(qGetImages, pGetImages);
-
-    // borrar producto e imagenes de DB
-    const qDeleteProduct = 'DELETE FROM productos where id = ?'; // por clave foránea se borran las imgs de la tabla imagenes
-    const pDeleteProduct = [idProducto];
-
-    // borro el producto
-    try {
-      const [resultDeleteProduct] = await con.execute(qDeleteProduct, pDeleteProduct);
-      if (resultDeleteProduct.affectedRows === 0) throw 'Error al borrar producto de la base de datos';
-    } catch (err) {
-      if (err.errno === 1451) {
-        throw { status: 409, text: 'No se puede borrar el producto porque hay mensajes que lo solicitan' };
-      } else {
-        throw err;
-      }
-    }
-
-    // borrar imágenes de Cloudinary
-    for (const image of imagesRows) {
-      const completeUrlImg = urlClodinaryImgs + image.path;
-      const public_id_img = getPublicIdFromCloudinaryImageUrl(completeUrlImg);
-      await deleteImgCloudinary(public_id_img);
-    }
-
-    // si no ocurrio ningún error
-    await con.commit();
-    const msg = {
-      text: 'Producto borrado correctamente',
-      type: 'green'
-    };
-    res.json({ msg });
-
-  } catch (err) {
-    console.log(err);
-    try {
-      await con.rollback();
-    } catch (err) {
-      console.log(err);
-      console.log('Fallo rollback');
-    }
-
-    if (err.status !== undefined) { // Si el error es un error especial
-      const msg = { text: err.text, type: 'red' };
-      res.status(err.status).json({ msg });
-
-    } else {
-      const msg = { text: 'Error al borrar el producto, intente nuevamente', type: 'red' };
-      res.status(500).json({ msg })
-    }
-  }
-  next();
-};
-
 module.exports = {
   getProducts,
+  deleteProduct,
   createProduct,
-  updateProduct,
-  deleteProduct
+  updateProduct
 }

@@ -1,4 +1,56 @@
 const { request } = require("express");
+const jwt = require('jsonwebtoken');
+
+const validateJWT = async (token, { req = request }) => {
+  let payload;
+  try {
+    payload = await getPayload(token);
+  } catch (err) {
+    console.log(err);
+    const msg = {
+      text: 'Token inválido, inicie sesión nuevamente',
+      type: 'red',
+      token: null
+    };
+    req.customError = {
+      status: 401,
+      msg
+    };
+    return Promise.reject();
+  }
+  const { id: email } = payload;
+  const { con } = req;
+  try {
+    const [results] = await con.execute('SELECT email, nombre, apellido FROM user WHERE email = ?', [email]);
+    if (results.length === 0) throw 'ID verificado, pero usuario no se encuentra en la Base de Datos';
+
+    const [userAuthenticated] = results;
+    req.userAuthenticated = userAuthenticated;
+
+  } catch (err) {
+    console.log(err);
+    const msg = {
+      text: 'Ocurrio un error al obtener la información para validar su usuario',
+      type: 'red'
+    };
+    req.customError = {
+      status: 500,
+      msg
+    };
+    return Promise.reject();
+  }
+}
+const getPayload = (token) => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, process.env.SECRET_KEY, (err, payload) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(payload);
+    });
+  });
+};
 
 const validateExistsIdTipo = async (tipo, { req }) => {
   const { con } = req;
@@ -89,5 +141,6 @@ module.exports = {
   validateExistsIdMessage,
   validateArrayImagenes,
   validateIDsNotRepeatInArray,
-  validateExistsProducts
+  validateExistsProducts,
+  validateJWT
 }

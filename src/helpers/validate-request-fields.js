@@ -1,4 +1,4 @@
-const { request, response } = require('express');
+'use strict';
 const { validationResult } = require('express-validator');
 const { endRequest } = require('../middlewares');
 

@@ -1,3 +1,4 @@
+'use strict';
 const reqBodyStringToJSON = require('../middlewares/req-body-string-to-json');
 const request = require('../middlewares/request');
 const multerErrorHandler = require('./multer-error-handler');

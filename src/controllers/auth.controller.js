@@ -1,3 +1,4 @@
+'use strict';
 const bcrypt = require('bcryptjs');
 
 const generateJWT = require('../helpers/generate-jwt');

@@ -1,3 +1,4 @@
+'use strict';
 const executeAsyncFunction = (f, textError, ...params) => {
   return new Promise((resolve, reject) => {
     f(...params, (err) => {

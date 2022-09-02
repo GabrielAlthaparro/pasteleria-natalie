@@ -1,3 +1,4 @@
+'use strict';
 const { deleteTmpFilesBuffers } = require("../helpers/files");
 
 const startRequest = async (req = request, res = response, next) => {

@@ -1,3 +1,4 @@
+'use strict';
 const indexArrayToObject = (array, key) => array.reduce((acc, el) => {
   acc[el[key]] = el;
   return acc;

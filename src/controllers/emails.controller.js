@@ -1,4 +1,4 @@
-const { request, response } = require('express');
+'use strict';
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({

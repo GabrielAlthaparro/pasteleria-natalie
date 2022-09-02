@@ -1,4 +1,4 @@
-const { request, response } = require("express");
+'use strict';
 
 const validateReqFilesNotEmpty = (param) => {
   return (req = request, res = response, next) => {

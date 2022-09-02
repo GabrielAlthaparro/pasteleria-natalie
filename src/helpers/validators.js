@@ -1,4 +1,4 @@
-const { request } = require("express");
+'use strict';
 const jwt = require('jsonwebtoken');
 
 const validateJWT = async (token, { req = request }) => {

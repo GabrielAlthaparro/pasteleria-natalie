@@ -1,4 +1,4 @@
-const { request, response } = require('express');
+'use strict';
 
 const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 const {

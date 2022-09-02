@@ -3,12 +3,29 @@ const { deleteTmpFilesBuffers } = require("../helpers/files");
 
 const startRequest = async (req = request, res = response, next) => {
   try {
-    const getPool = req.app.get('getPool');
-    const pool = await getPool();
+    const pool = await req.app.get('pool');
     const con = await pool.getConnection();
     req.con = con;
     req.routedOk = false;
-    req.customError = null;
+    const customErrorsHandler = () => {
+      let _specialError = null;
+      const _badRequestsErrors = [];
+      return {
+        addBadRequestError: text => {
+          const msg = { text, type: 'red' };
+          _badRequestsErrors.push({ msg });
+        },
+        addSpecialError: ({ status, text, ...others }) => {
+          if (_specialError !== null) return; // si ya hay un error especial, no hago nada
+          const msg = { text, type: 'red' };
+          _specialError = { status, msg, ...others };
+        },
+        getSpecialError: () => _specialError,
+        getBadRequestErrors: () => _badRequestsErrors,
+        isEmpty: () => _badRequestsErrors.length === 0 && _specialError === null ? true : false
+      }
+    }
+    req.customErrors = customErrorsHandler(); // clausura
     next();
   } catch (err) {
     console.log(err);

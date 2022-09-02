@@ -35,8 +35,4 @@ pool.on('release', connection => {
   console.log('Connection %d released', connection.threadId);
 });
 
-const getPool = () => {
-  return pool;
-};
-
-module.exports = getPool;
+module.exports = pool;

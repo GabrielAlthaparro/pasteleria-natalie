@@ -2,8 +2,10 @@
 const { Router } = require('express');
 const { header, param, body } = require('express-validator');
 
-const validateRequestFields = require('../helpers/validate-request-fields');
-const { validateExistsIdMessage, validateJWT } = require('../helpers/validators');
+const {
+  validateExistsIdMessage,
+  validateJWT,
+  validateRequestFields } = require('../helpers');
 
 const { sendBudget } = require('../controllers/emails.controller');
 

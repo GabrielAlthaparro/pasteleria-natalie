@@ -1,5 +1,7 @@
 'use strict';
-const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
+const {
+  indexArrayToObjectWhitArray,
+  indexArrayToObject } = require('../helpers');
 
 const getMessages = async (req = request, res = response, next) => {
   const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';

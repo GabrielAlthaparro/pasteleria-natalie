@@ -2,8 +2,12 @@
 const { Router } = require('express');
 const { header, param, body } = require('express-validator');
 
-const { validateIDsNotRepeatInArray, validateExistsProducts, validateExistsIdMessage, validateJWT } = require('../helpers/validators');
-const validateRequestFields = require('../helpers/validate-request-fields');
+const {
+  validateIDsNotRepeatInArray,
+  validateExistsProducts,
+  validateExistsIdMessage,
+  validateJWT,
+  validateRequestFields } = require('../helpers');
 
 const {
   getMessages,
@@ -40,19 +44,19 @@ router.post('/', [
   body('aclaraciones', 'Texto de aclaración inválido')
     .optional()
     .customSanitizer(value => value.toString()).trim()
-    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9,\."' ]*$/)
-    .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
+    .matches(/^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ0-9$,\."' ]*$/)
+    .isLength({ max: 500 }).bail().withMessage('Máximo 500 caracteres'),
   body('productos.*.id', 'IDs de productos inválidos')
     .isInt({ min: 1 }).bail()
     .toInt(),
-  body('productos.*.cantidad', 'Cantidad de productos inválidos')
+  body('productos.*.cantidad', 'La cantidad seleccionada es inválida')
     .isInt({ min: 1 }).bail()
     .toInt(),
   body('productos', 'Productos inválidos')
     .exists({ checkNull: true }).bail().withMessage('Envíe los productos que desea')
     .isArray({ min: 1 }).bail()
     .if(body('productos.*.id').isInt({ min: 1 }))
-    .custom(validateIDsNotRepeatInArray).bail()
+    .custom(validateIDsNotRepeatInArray).bail().withMessage('Se enviaron imágenes con IDs repetidos')
     .custom(validateExistsProducts),
 
   validateRequestFields

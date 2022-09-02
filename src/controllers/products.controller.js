@@ -1,11 +1,12 @@
 'use strict';
 
-const { indexArrayToObjectWhitArray, indexArrayToObject } = require('../helpers/indexArray');
 const {
   saveImgCloudinary,
   deleteImgCloudinary,
   getPublicIdFromCloudinaryImageUrl,
-  getImgUrlDB } = require('../helpers/files');
+  getImgUrlDB,
+  indexArrayToObjectWhitArray,
+  indexArrayToObject } = require('../helpers');
 
 const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
 // https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
@@ -332,7 +333,7 @@ const updateProduct = async (req = request, res = response, next) => {
 
     // verificar que los ids enviados existen en DB
     for (const imagen of imagenes) {
-      if (indexedImagesDB[imagen.id] === undefined) throw { status: 410, text: 'Las imágenes enviadas no se encuentran en BD' };
+      if (indexedImagesDB[imagen.id] === undefined) throw { status: 410, text: 'Las imágenes enviadas no se encuentran en la Base de Datos' };
     }
 
     const indexedReceivedImages = indexArrayToObject(imagenes, 'id');

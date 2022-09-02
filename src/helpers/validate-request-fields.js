@@ -9,46 +9,37 @@ const validateRequestFields = (req = request, res = response, next) => {
       msg: {
         text: msg,
         type: 'red'
-      },
-      param,
-      location
+      }
     }
     return format;
   };
 
   const expressValidatorResult = validationResult(req).formatWith(errorFormatter);
-  const { customError } = req;
+  const { customErrors } = req;
 
-  if (!expressValidatorResult.isEmpty() || customError !== null) {
+  if (!expressValidatorResult.isEmpty() || !customErrors.isEmpty()) {
+
     const expressValidatorErrors = expressValidatorResult.array(); // si no hay errores, []
+    const customBadRequestErrors = customErrors.getBadRequestErrors(); // si no hay errores, []
+    const customSpecialError = customErrors.getSpecialError(); // si no hay errores, null
 
-    if (customError === null) {
-      // si no ocurrio ningun error personalizado
-      res.status(400).json(expressValidatorErrors);
-      console.log(expressValidatorErrors[0]);
+    if (customSpecialError !== null) { // si ocurrio algún error personalizado
+      const { status, msg, ...others } = customSpecialError;
+      res.status(status).json({ msg, ...others });
+      console.log(customSpecialError);
     } else {
-      // sino, que tipo de error personalizado ocurrio?
-      const { status } = customError;
-      if (status !== undefined) { // si ocurrio algun error especial
-
-        const { msg } = customError;
-        res.status(status).json({ msg });
-      } else { // sino solo ocurrieron bad requests
-
-        const { errors: customErrors } = customError;
-        const requestErrors = [
-          ...expressValidatorErrors,
-          ...customErrors
-        ];
-        res.status(400).json(requestErrors);
-        console.log(requestErrors[0]);
-      }
+      // solo tengo que devolver bad requests, alguno de los dos no esta vacio
+      const requestErrors = [
+        ...expressValidatorErrors,
+        ...customBadRequestErrors
+      ];
+      res.status(400).json(requestErrors);
+      console.log(requestErrors[0]);
     }
     // si hubo algun error en las validaciones
     endRequest(req, res, next);
     return;
   }
-
   // si no hubo ningun tipo de error en las validaciones
   next();
 }

@@ -31,6 +31,7 @@ const validateRequestFields = require('../helpers/validate-request-fields');
 
 const {
   getProducts,
+  getProduct,
   createProduct,
   updateProduct,
   deleteProduct
@@ -56,6 +57,13 @@ router.get('/', [
   validateRequestFields
 ], getProducts);
 
+router.get('/:id', [
+  param('id', 'ID inválido')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
+    .toInt()
+    .custom(validateExistsIdProduct),
+  validateRequestFields
+], getProduct);
 
 router.post('/', [
   header('token', 'Token inválido')

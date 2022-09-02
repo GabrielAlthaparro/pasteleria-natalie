@@ -94,6 +94,28 @@ const getProducts = async (req = request, res = response, next) => {
   next();
 };
 
+const getProduct = async (req = request, res = response, next) => {
+  const { con } = req;
+  const { productDB } = req; // ya hice la consulta en la validacion
+  try {
+    const qGetImagenes = 'SELECT * FROM imagenes WHERE id_producto = ? ORDER BY principal DESC';
+    const pGetImagenes = [productDB.id];
+    const [imagesRows] = await con.execute(qGetImagenes, pGetImagenes);
+    const imagenes = [];
+    for (const imagen of imagesRows) {
+      const { id, path, principal } = imagen; // principal es un buffer que tiene el dato en la primer posición
+      imagenes.push({ id, path: urlClodinaryImgs + path, principal: principal[0] === 1 ? true : false })
+    }
+    res.json({ ...productDB, imagenes });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      msg: 'Error al obtener los productos',
+    })
+  }
+  next();
+};
+
 const deleteProduct = async (req = request, res = response, next) => {
   const { id: idProducto } = req.params;
   const { con } = req;
@@ -467,6 +489,7 @@ const updateProduct = async (req = request, res = response, next) => {
 
 module.exports = {
   getProducts,
+  getProduct,
   deleteProduct,
   createProduct,
   updateProduct

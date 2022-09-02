@@ -3,12 +3,24 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  secure: true,
+  requireTLS: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_PASSWORD
   },
-  secure: true
 });
+
+// const transporter = nodemailer.createTransport({
+//   host: "smtp.gmail.com",
+//   port: 465,
+//   secure: true,
+//   requireTLS: true,
+//   auth: {
+//     user: process.env.GMAIL_USER,
+//     pass: process.env.GMAIL_PASSWORD,
+//   }
+// });
 
 const sendBudget = async (req = request, res = response, next) => {
   const { con } = req;
@@ -16,9 +28,9 @@ const sendBudget = async (req = request, res = response, next) => {
   const { messageDB } = req;
 
   const mailOptions = {
-    from: `Pasteleria Natalie <${process.env.GMAIL_USER}>`,
+    from: `Pasteleria Natalie<${process.env.GMAIL_USER}>`,
     to: messageDB.email,
-    subject: 'Respuesta de solicitud de presupuesto a Pasteleria Natalie',
+    subject: 'Presupuesto de Pasteleria Natalie',
     text: mensaje
   };
 

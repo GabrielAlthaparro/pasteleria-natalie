@@ -10,18 +10,16 @@ const transporter = nodemailer.createTransport({
   secure: true
 });
 
-
 const sendBudget = async (req = request, res = response, next) => {
   const { con } = req;
   const { mensaje } = req.body;
-  const { messageDB, userAuthenticated } = req;
+  const { messageDB } = req;
 
-  const html = `<h1> ${mensaje} </h1>`;
   const mailOptions = {
-    from: `Pasteleria Natalie <${userAuthenticated.email}>`,
+    from: `Pasteleria Natalie <${process.env.GMAIL_USER}>`,
     to: messageDB.email,
     subject: 'Respuesta de solicitud de presupuesto a Pasteleria Natalie',
-    html
+    text: mensaje
   };
 
   try {

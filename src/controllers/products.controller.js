@@ -1,5 +1,6 @@
 'use strict';
 
+const { getTotalProducts } = require('../db/querys');
 const {
   saveImgCloudinary,
   deleteImgCloudinary,
@@ -43,19 +44,14 @@ const getProducts = async (req = request, res = response, next) => {
       }
     }
 
-    qGetProductos += ` ORDER BY cantidadConsultas DESC LIMIT ${CANTIDAD_POR_PAGINA + 1} OFFSET ?`; // me traigo un producto más, si existe
+    qGetProductos += ` ORDER BY cantidadConsultas DESC LIMIT ${CANTIDAD_POR_PAGINA + 1} OFFSET ?`; // me traigo un producto demás, si existe
     const offset = (page - 1) * CANTIDAD_POR_PAGINA;
     pGetProductos.push(offset);
-
     const [productsRows] = await con.execute(qGetProductos, pGetProductos);
     const nextPage = (productsRows.length === CANTIDAD_POR_PAGINA + 1) ? true : false;
     if (nextPage) { // si hay mas productos en la siguiente pagina
       productsRows.pop(); // saco ese producto demas que habia traido
     }
-
-    let qGetCountProducts = 'SELECT COUNT(*) AS cantidadTotalProductos FROM productos';
-    const [[productsCount]] = await con.query(qGetCountProducts);
-    const { cantidadTotalProductos } = productsCount;
 
     let productos = [];
     if (productsRows.length !== 0) { // si hay productos
@@ -84,6 +80,7 @@ const getProducts = async (req = request, res = response, next) => {
       });
     }
 
+    const cantidadTotalProductos = req.app.get('cantidadTotalProductos');
     res.json({ cantidadTotalProductos, nextPage, productos });
 
   } catch (err) {
@@ -159,6 +156,8 @@ const deleteProduct = async (req = request, res = response, next) => {
       type: 'green'
     };
     res.json({ msg });
+
+    req.app.set('cantidadTotalProductos', await getTotalProducts());
 
   } catch (err) {
     console.log(err);
@@ -260,6 +259,8 @@ const createProduct = async (req = request, res = response, next) => {
       msg,
       producto: createdProduct
     });
+
+    req.app.set('cantidadTotalProductos', await getTotalProducts());
 
   } catch (err) {
     console.log(err);

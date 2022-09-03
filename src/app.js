@@ -1,17 +1,17 @@
 'use strict';
+require('dotenv').config({ override: true });
 const cors = require('cors');
-require('dotenv').config();
 const express = require('express');
 
 const {
   startRequest,
   endRequest,
-  expressJsonErrorHandler
-} = require('./middlewares/');
+  expressJsonErrorHandler,
+  appInit
+} = require('./middlewares');
 
 const app = express();
-app.set('port', process.env.PORT || 3000);
-app.set('pool', require('./db/pool'));
+appInit(app);
 
 // INITIAL MIDDLEWARES
 app.use(cors());

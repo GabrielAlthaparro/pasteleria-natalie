@@ -11,6 +11,7 @@ const {
 
 const {
   getMessages,
+  getMessage,
   createMessage,
   updateMessage,
   deleteMessage
@@ -29,6 +30,21 @@ router.get('/', [
 
   validateRequestFields
 ], getMessages, endRequest);
+
+router.get('/:id', [
+  header('token', 'Token inválido')
+    .notEmpty().bail()
+    .isJWT().bail().withMessage('JWT inválido')
+    .customSanitizer(value => value.toString()).trim()
+    .custom(validateJWT),
+
+  param('id', 'ID inválido')
+    .isInt({ min: 1 }).bail().withMessage('El ID debe ser un número natural')
+    .toInt()
+    .custom(validateExistsIdMessage),
+
+  validateRequestFields
+], getMessage, endRequest);
 
 
 router.post('/', [

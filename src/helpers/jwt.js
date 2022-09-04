@@ -13,7 +13,7 @@ const verifyAndGetPayload = token => {
 
 const generateJWT = id => {
   const payload = { id };
-  const token = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '15m' }); // si falla, hace un throw
+  const token = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' }); // si falla, hace un throw
   return token;
 }
 

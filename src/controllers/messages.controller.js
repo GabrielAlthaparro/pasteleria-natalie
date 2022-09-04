@@ -62,6 +62,60 @@ const getMessages = async (req = request, res = response, next) => {
   next();
 }
 
+
+const getMessage = async (req = request, res = response, next) => {
+  const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
+  const { con } = req;
+  const { id: idMensaje } = req.params;
+
+  try {
+    const qGetMessage = 'SELECT id, email, nombre, aclaraciones, fecha, estado FROM mensajes m WHERE id = ?';
+    const [messagesRows] = await con.execute(qGetMessage, [idMensaje]);
+    if (messagesRows.length === 0) { res.json({}); next(); return }
+
+    const qGetMessagesProducts = 'SELECT id_mensaje AS idMensaje, id_producto AS idProducto, cantidad FROM mensajes_productos WHERE id_mensaje = ?';
+    const pGetMessagesProducts = [idMensaje];
+    const [messagesProductsRows] = await con.execute(qGetMessagesProducts, pGetMessagesProducts);
+    if (messagesProductsRows.length === 0) throw 'Existe el mensaje, pero no hay registros en tabla mensajes_productos';
+
+    let qGetProducts = '';
+    qGetProducts += 'SELECT p.id AS id, nombre, id_tipo AS idTipo, path ';
+    qGetProducts += 'FROM productos p INNER JOIN imagenes m ON (p.id = m.id_producto AND m.principal = 1) ';
+    qGetProducts += 'WHERE p.id IN (';
+    const pGetProducts = [];
+    for (const messageProduct of messagesProductsRows) {
+      qGetProducts += ' ?,'
+      pGetProducts.push(messageProduct.idProducto);
+    }
+    qGetProducts = qGetProducts.substring(0, qGetProducts.length - 1) + ')';
+    const [productsRows] = await con.execute(qGetProducts, pGetProducts);
+    if (productsRows.length === 0) throw 'No existen los productos referenciados por los mensajes';
+    const message = messagesRows[0];
+    const productosConsultados = productsRows.map(product => {
+      const { nombre, idTipo, path } = product;
+      const productFind = messagesProductsRows.find(messageProduct => messageProduct.idProducto === product.id);
+      const cantidad = productFind.cantidad;
+      return { nombre, idTipo, cantidad, path: urlClodinaryImgs + path };
+    })
+
+    let { aclaraciones, ...messageData } = message;
+    if (aclaraciones === null) aclaraciones = '';
+    res.json({
+      ...messageData,
+      aclaraciones,
+      productosConsultados
+    });
+  } catch (err) {
+    console.log(err);
+    const msg = {
+      text: 'Error al obtener los mensajes',
+      type: 'red'
+    }
+    res.status(500).json({ msg });
+  }
+  next();
+}
+
 const createMessage = async (req = request, res = response, next) => {
   const { con } = req;
   const { email, nombre, productos, aclaraciones = null } = req.body;
@@ -173,6 +227,7 @@ const deleteMessage = async (req = request, res = response, next) => {
 
 module.exports = {
   getMessages,
+  getMessage,
   createMessage,
   updateMessage,
   deleteMessage

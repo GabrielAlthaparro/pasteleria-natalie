@@ -17,8 +17,9 @@ const {
   validateReqFilesNotEmpty,
   validateReqFilesExtensions,
   multerErrorHandler,
-  validateReqMaxFiles
-} = require('../middlewares')
+  validateReqMaxFiles,
+  endRequest
+} = require('../middlewares');
 
 const {
   validateExistsIdTipo,
@@ -53,7 +54,7 @@ router.get('/', [
     .isLength({ max: 50 }).bail().withMessage('Ingrese un nombre con menos de 50 caracteres'),
 
   validateRequestFields
-], getProducts);
+], getProducts, endRequest);
 
 router.get('/:id', [
   param('id', 'ID inválido')
@@ -61,7 +62,7 @@ router.get('/:id', [
     .toInt()
     .custom(validateExistsIdProduct),
   validateRequestFields
-], getProduct);
+], getProduct, endRequest);
 
 router.post('/', [
   header('token', 'Token inválido')
@@ -93,7 +94,7 @@ router.post('/', [
     .isLength({ max: 255 }).bail().withMessage('Máximo 255 caracteres'),
 
   validateRequestFields
-], createProduct);
+], createProduct, endRequest);
 
 let imagenesOk = false;
 router.put('/:id', [
@@ -169,7 +170,7 @@ router.put('/:id', [
   }),
 
   validateRequestFields
-], updateProduct);
+], updateProduct, endRequest);
 
 
 router.delete('/:id', [
@@ -185,6 +186,6 @@ router.delete('/:id', [
     .custom(validateExistsIdProduct),
 
   validateRequestFields
-], deleteProduct);
+], deleteProduct, endRequest);
 
 module.exports = router;

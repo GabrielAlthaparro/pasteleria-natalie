@@ -81,9 +81,9 @@ const createMessage = async (req = request, res = response, next) => {
 
     const pInsertMessage = [email, nombre, fecha];
     let qInsertMessage = '';
-    qInsertMessage += 'INSERT INTO mensajes (email, nombre, fecha'
+    qInsertMessage += 'INSERT INTO mensajes (email, nombre, fecha';
     if (aclaraciones !== null) {
-      qInsertMessage += ', aclaraciones'
+      qInsertMessage += ', aclaraciones';
       pInsertMessage.push(aclaraciones);
     }
     qInsertMessage += ') VALUES (?, ?, ?' + (aclaraciones !== null ? ', ?' : '') + ')';

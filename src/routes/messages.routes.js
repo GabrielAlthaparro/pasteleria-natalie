@@ -15,6 +15,7 @@ const {
   updateMessage,
   deleteMessage
 } = require('../controllers/messages.controller');
+const { endRequest } = require('../middlewares');
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.get('/', [
     .custom(validateJWT),
 
   validateRequestFields
-], getMessages);
+], getMessages, endRequest);
 
 
 router.post('/', [
@@ -60,7 +61,7 @@ router.post('/', [
     .custom(validateExistsProducts),
 
   validateRequestFields
-], createMessage);
+], createMessage, endRequest);
 
 
 router.put('/:id', [
@@ -77,7 +78,7 @@ router.put('/:id', [
     .custom((value, { req }) => req.messageDB.estado === 0 ? true : false).bail().withMessage('Ya se abrio está solicitud'),
 
   validateRequestFields
-], updateMessage);
+], updateMessage, endRequest);
 
 
 router.delete('/:id', [
@@ -93,6 +94,6 @@ router.delete('/:id', [
     .custom(validateExistsIdMessage),
 
   validateRequestFields
-], deleteMessage);
+], deleteMessage, endRequest);
 
 module.exports = router;

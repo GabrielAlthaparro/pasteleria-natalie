@@ -8,6 +8,7 @@ const {
   validateRequestFields } = require('../helpers');
 
 const { sendBudget } = require('../controllers/emails.controller');
+const { endRequest } = require('../middlewares');
 
 const router = Router();
 
@@ -29,6 +30,6 @@ router.post('/:id', [
     .customSanitizer(value => value.toString()).trim(),
 
   validateRequestFields
-], sendBudget);
+], sendBudget, endRequest);
 
 module.exports = router;

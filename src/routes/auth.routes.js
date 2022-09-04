@@ -1,9 +1,10 @@
 'use strict';
 const { Router } = require('express');
-const { body } = require('express-validator');
+const { body, header } = require('express-validator');
 
-const { validateRequestFields } = require('../helpers');
-const { login } = require('../controllers/auth.controller');
+const { validateRequestFields, validateJWT } = require('../helpers');
+const { login, logout } = require('../controllers/auth.controller');
+const { endRequest } = require('../middlewares');
 
 const router = Router();
 
@@ -12,6 +13,15 @@ router.post('/login', [
     .notEmpty().bail().withMessage('Ingrese su contraseña')
     .customSanitizer(value => value.toString()),
   validateRequestFields
-], login);
+], login, endRequest);
+
+router.post('/logout', [
+  header('token', 'Token inválido')
+    .notEmpty().bail()
+    .isJWT().bail().withMessage('JWT inválido')
+    .customSanitizer(value => value.toString()).trim(),
+
+  validateRequestFields
+], logout, endRequest);
 
 module.exports = router;

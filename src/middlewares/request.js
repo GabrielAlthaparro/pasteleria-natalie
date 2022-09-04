@@ -1,12 +1,10 @@
 'use strict';
-const { deleteTmpFilesBuffers } = require("../helpers/files");
 
-const startRequest = async (req = request, res = response, next) => {
+const startRequest = async (req, res, next) => {
   try {
-    const pool = await req.app.get('pool');
+    const pool = req.app.get('pool');
     const con = await pool.getConnection();
     req.con = con;
-    req.routedOk = false;
     const customErrorsHandler = () => {
       let _specialError = null;
       const _badRequestsErrors = [];
@@ -34,17 +32,18 @@ const startRequest = async (req = request, res = response, next) => {
   }
 };
 
-const endRequest = async (req, res, next) => {
-  const { con, routedOk, files } = req;
+const endRequest = async (req) => {
+  const { con, files } = req;
   try {
     con.release();
   } catch (err) {
     console.log(err);
     console.log('Error al liberar la conexión');
   }
-  if (files !== undefined) deleteTmpFilesBuffers(files);
-
-  if (!routedOk) next();
+  if (files !== undefined) {
+    const { deleteTmpFilesBuffers } = require("../helpers");
+    deleteTmpFilesBuffers(files);
+  }
 }
 
 module.exports = {

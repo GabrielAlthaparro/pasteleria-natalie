@@ -4,10 +4,10 @@ const cors = require('cors');
 const express = require('express');
 
 const {
+  appInit,
   startRequest,
-  endRequest,
   expressJsonErrorHandler,
-  appInit
+  endRequest,
 } = require('./middlewares');
 
 const app = express();
@@ -25,8 +25,10 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/messages', require('./routes/messages.routes'));
 app.use('/api/emails', require('./routes/emails.routes'));
 
-// ENDING MIDDLEWARES
-app.use(endRequest);
-app.all('*', (req, res) => res.sendStatus(404));
+// Si no entro a ninguna ruta
+app.all('*', (req, res) => {
+  res.sendStatus(404);
+  endRequest(req);
+});
 
 module.exports = app;

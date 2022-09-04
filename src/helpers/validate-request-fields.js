@@ -1,6 +1,6 @@
 'use strict';
 const { validationResult } = require('express-validator');
-const { endRequest } = require('../middlewares');
+const { endRequest } = require('../middlewares/request');
 
 const validateRequestFields = (req = request, res = response, next) => {
   req.routedOk = true;

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 01-09-2022 a las 23:20:39
+-- Tiempo de generación: 04-09-2022 a las 21:17:50
 -- Versión del servidor: 5.7.31
 -- Versión de PHP: 7.4.9
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `imagenes` (
   `principal` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `id_producto_ibfk` (`id_producto`)
-) ENGINE=InnoDB AUTO_INCREMENT=496609 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=496618 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `mensajes` (
   `fecha` varchar(10) COLLATE utf8_spanish_ci NOT NULL,
   `estado` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `productos` (
   `descripcion` varchar(255) COLLATE utf8_spanish_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `tipo_ibfk` (`id_tipo`)
-) ENGINE=InnoDB AUTO_INCREMENT=50357 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=50362 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -110,24 +110,39 @@ INSERT INTO `tipos` (`id`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `tokens`
+--
+
+DROP TABLE IF EXISTS `tokens`;
+CREATE TABLE IF NOT EXISTS `tokens` (
+  `token` varchar(200) COLLATE utf8_spanish_ci NOT NULL,
+  PRIMARY KEY (`token`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `user`
 --
 
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE IF NOT EXISTS `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `email` varchar(50) COLLATE utf8_spanish_ci NOT NULL,
   `nombre` varchar(50) COLLATE utf8_spanish_ci NOT NULL,
   `apellido` varchar(50) COLLATE utf8_spanish_ci NOT NULL,
   `password` varchar(100) COLLATE utf8_spanish_ci NOT NULL,
-  PRIMARY KEY (`email`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+  `token` varchar(200) COLLATE utf8_spanish_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email_key` (`email`)
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `user`
 --
 
-INSERT INTO `user` (`email`, `nombre`, `apellido`, `password`) VALUES
-('nataliepasteleria.artesanal@gmail.com', 'Natalia', 'Soria', '$2b$10$0O2N9y0NyiVaZI7WavIwv.VOY95QGqSA48PdNRJ5jHjblqSvC6pxC');
+INSERT INTO `user` (`id`, `email`, `nombre`, `apellido`, `password`, `token`) VALUES
+(1, 'nataliepasteleria.artesanal@gmail.com', 'Natalia', 'Soria', '$2b$10$0O2N9y0NyiVaZI7WavIwv.VOY95QGqSA48PdNRJ5jHjblqSvC6pxC', NULL);
 
 --
 -- Restricciones para tablas volcadas

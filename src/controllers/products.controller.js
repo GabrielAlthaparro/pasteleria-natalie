@@ -12,7 +12,7 @@ const {
 const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
 // https://res.cloudinary.com/digitalsystemda/image/upload/v1659329811/pasteleria-natalie/dev/dea9ozxkd4kcfpjbjmer.jpg
 
-const getProducts = async (req = request, res = response, next) => {
+const getProducts = async (req, res, next) => {
   const { con } = req;
   const {
     tipo = null,
@@ -80,8 +80,14 @@ const getProducts = async (req = request, res = response, next) => {
       });
     }
 
-    const cantidadTotalProductos = req.app.get('cantidadTotalProductos');
-    res.json({ cantidadTotalProductos, nextPage, productos });
+    let cantidadTotalProductos = await req.app.get('cantidadTotalProductos'); // es una promesa que ya debe estar resuelta
+    if (cantidadTotalProductos === undefined) {
+      cantidadTotalProductos = await getTotalProducts();
+      if (cantidadTotalProductos === undefined) throw 'Error al consultar la cantidad total de los productos';
+      req.app.set('cantidadTotalProductos', cantidadTotalProductos);
+    };
+
+    res.json({ cantidadTotalProductos, nextPage, productos })
 
   } catch (err) {
     console.log(err);
@@ -92,7 +98,7 @@ const getProducts = async (req = request, res = response, next) => {
   next();
 };
 
-const getProduct = async (req = request, res = response, next) => {
+const getProduct = async (req, res, next) => {
   const { con } = req;
   const { productDB } = req; // ya hice la consulta en la validacion
   try {
@@ -114,7 +120,7 @@ const getProduct = async (req = request, res = response, next) => {
   next();
 };
 
-const deleteProduct = async (req = request, res = response, next) => {
+const deleteProduct = async (req, res, next) => {
   const { id: idProducto } = req.params;
   const { con } = req;
 
@@ -157,8 +163,6 @@ const deleteProduct = async (req = request, res = response, next) => {
     };
     res.json({ msg });
 
-    req.app.set('cantidadTotalProductos', await getTotalProducts());
-
   } catch (err) {
     console.log(err);
     try {
@@ -177,12 +181,13 @@ const deleteProduct = async (req = request, res = response, next) => {
       res.status(500).json({ msg })
     }
   }
+  req.app.set('cantidadTotalProductos', getTotalProducts());
   next();
 };
 
 const uploadedImagesCloudinary = []; // por si ocurre algun error al crear producto, para borrar las imagenes que cree en cloudinary
 
-const createProduct = async (req = request, res = response, next) => {
+const createProduct = async (req, res, next) => {
   const { nombre, tipo, descripcion } = req.body;
   const { files } = req;
   const { con } = req;
@@ -260,8 +265,6 @@ const createProduct = async (req = request, res = response, next) => {
       producto: createdProduct
     });
 
-    req.app.set('cantidadTotalProductos', await getTotalProducts());
-
   } catch (err) {
     console.log(err);
 
@@ -282,10 +285,11 @@ const createProduct = async (req = request, res = response, next) => {
       type: 'red'
     });
   }
+  req.app.set('cantidadTotalProductos', getTotalProducts());
   next();
 };
 
-const updateProduct = async (req = request, res = response, next) => {
+const updateProduct = async (req, res, next) => {
   const { id: idProducto } = req.params;
   const { nombre, idTipo, descripcion, imagenes } = req.body;
   const { files } = req;

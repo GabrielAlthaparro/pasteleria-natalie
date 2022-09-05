@@ -6,48 +6,65 @@ const { generateJWT, getPayload, verifyAndGetPayload } = require('../helpers');
 const login = async (req, res, next) => {
   const { password: receivedPassword } = req.body;
   const { con } = req;
+
+  let userDB;
+  let passwordOk = false;
   try {
     const [usersRows] = await con.query('SELECT id, email, nombre, apellido, password, token FROM user');
-    const userDB = usersRows[0]; // porque solo hay un usuario
-    const passwordOk = await bcrypt.compare(receivedPassword, userDB.password);
-    if (!passwordOk) {
-      const msg = { text: 'Contraseña incorrecta', type: 'red' };
-      res.status(401).json({ msg });
-    } else {
-      if (userDB.token !== null) { // si tengo registrado que se logueo anteriormente
-        try { // me fijo si su token todavia anda
-          verifyAndGetPayload(userDB.token);
-          // el token que tiene sigue funcionando supuestamente, se lo mando devuelta
-          sendToken(userDB.token, res);
-        } catch (err) { // su token ya expiro, le tengo que dar otro
-          console.log(err);
-          const newToken = generateJWT(userDB.id);
-          await con.query(`UPDATE user SET token = '${newToken}' WHERE id = ${userDB.id}`);
-          sendToken(newToken, res);
-        }
-      } else { // sino, no se logueo anteriormente
-        const newToken = generateJWT(userDB.id);
-        await con.query(`UPDATE user SET token = '${newToken}' WHERE id = ${userDB.id}`);
-        sendToken(newToken, res);
-      }
-    }
+    userDB = usersRows[0]; // porque solo hay un usuario
+    passwordOk = await bcrypt.compare(receivedPassword, userDB.password);
   } catch (err) {
     console.log(err);
-    const msg = { text: 'Error al iniciar sesión', type: 'red' };
-    res.status(500).json({ msg });
+    sendServerLoginError(res);
+    return next();
   }
+  if (!passwordOk) {
+    const msg = { text: 'Contraseña incorrecta', type: 'red' };
+    res.status(401).json({ msg });
+    return next();
+  }
+
+  // usuario válidado
+  let responseToken;
+  if (userDB.token === null) { // si no tiene token en la DB
+    try {
+      responseToken = generateJWT(userDB.id);
+      await con.execute('UPDATE user SET token = ? WHERE id = ?', [responseToken, userDB.id]);
+    } catch (err) {
+      console.log(err);
+      sendServerLoginError(res);
+      return next();
+    }
+  } else { // me fijo si su token todavia anda
+    try {
+      verifyAndGetPayload(userDB.token);
+      // el token que tiene sigue funcionando supuestamente, se lo mando devuelta
+      responseToken = userDB.token;
+    } catch (err) { // su token ya expiro, le tengo que dar otro
+      try {
+        responseToken = generateJWT(userDB.id);
+        await con.execute('UPDATE user SET token = ? WHERE id = ?', [responseToken, userDB.id]);
+      } catch (err) {
+        console.log(err);
+        sendServerLoginError(res);
+        return next();
+      }
+    }
+  }
+  // Si llegue hasta aca, esta todo correcto
+  const msg = { text: 'Sesión iniciada correctamente', type: 'green' };
+  const { id, email, password, token: tokenDB, ...userPublicData } = userDB;
+  res.json({ msg, token: responseToken, user: userPublicData });
   next();
 };
-const sendToken = (token, res) => {
-  const msg = { text: 'Sesión iniciada correctamente', type: 'green' };
-  res.json({ msg, token });
+const sendServerLoginError = res => {
+  const msg = { text: 'Error al iniciar sesión', type: 'red' };
+  res.status(500).json({ msg });
 }
-
 
 const logout = async (req, res, next) => {
   const { con } = req;
   const { token } = req.headers;
-
   try {
     const payload = verifyAndGetPayload(token);
     const { id: idUser } = payload;
@@ -99,7 +116,6 @@ const deleteUserTokenAndSendLogoutOK = async (idUser, con, res) => {
     res.status(500).json({ msg });
   }
 }
-
 const sendInvalidToken = res => {
   const msg = { text: 'Token inválido', type: 'red' };
   res.status(401).json({ msg });

@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const { body, header } = require('express-validator');
 
-const { validateRequestFields, validateJWT } = require('../helpers');
+const { validateRequestFields } = require('../helpers');
 const { login, logout } = require('../controllers/auth.controller');
 const { endRequest } = require('../middlewares');
 
@@ -11,6 +11,7 @@ const router = Router();
 router.post('/login', [
   body('password', 'Contraseña inválida')
     .notEmpty().bail().withMessage('Ingrese su contraseña')
+    .isString().bail()
     .customSanitizer(value => value.toString()),
   validateRequestFields
 ], login, endRequest);

@@ -457,7 +457,7 @@ const updateProduct = async (req, res, next) => {
       descripcion,
       idTipo,
       tipo: (await con.execute(`SELECT descripcion FROM tipos WHERE id = ?`, [idTipo]))[0][0].descripcion,
-      cantidadConsultas: productDB.cantidadConsultas,
+      cantidadConsultas: productDB.cantidad_consultas,
       imagenes: imagenesProducto
     };
 

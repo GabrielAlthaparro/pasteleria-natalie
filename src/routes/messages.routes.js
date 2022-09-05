@@ -11,7 +11,7 @@ const {
 
 const {
   getMessages,
-  getMessage,
+  // getMessage,
   createMessage,
   updateMessage,
   deleteMessage
@@ -31,7 +31,7 @@ router.get('/', [
   validateRequestFields
 ], getMessages, endRequest);
 
-router.get('/:id', [
+/* router.get('/:id', [
   header('token', 'Token inválido')
     .notEmpty().bail()
     .isJWT().bail().withMessage('JWT inválido')
@@ -44,7 +44,7 @@ router.get('/:id', [
     .custom(validateExistsIdMessage),
 
   validateRequestFields
-], getMessage, endRequest);
+], getMessage, endRequest); */
 
 
 router.post('/', [

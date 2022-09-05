@@ -227,7 +227,7 @@ const deleteMessage = async (req = request, res = response, next) => {
 
 module.exports = {
   getMessages,
-  getMessage,
+  // getMessage,
   createMessage,
   updateMessage,
   deleteMessage

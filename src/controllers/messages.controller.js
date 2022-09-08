@@ -3,7 +3,7 @@ const {
   indexArrayToObjectWhitArray,
   indexArrayToObject } = require('../helpers');
 
-const getMessages = async (req = request, res = response, next) => {
+const getMessages = async (req, res, next) => {
   const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
   const { con } = req;
 
@@ -63,7 +63,7 @@ const getMessages = async (req = request, res = response, next) => {
 }
 
 
-const getMessage = async (req = request, res = response, next) => {
+const getMessage = async (req, res, next) => {
   const urlClodinaryImgs = 'https://res.cloudinary.com/digitalsystemda/image/upload';
   const { con } = req;
   const { id: idMensaje } = req.params;
@@ -116,7 +116,7 @@ const getMessage = async (req = request, res = response, next) => {
   next();
 }
 
-const createMessage = async (req = request, res = response, next) => {
+const createMessage = async (req, res, next) => {
   const { con } = req;
   const { email, nombre, productos, aclaraciones = null } = req.body;
 
@@ -185,7 +185,7 @@ const createMessage = async (req = request, res = response, next) => {
   next();
 }
 
-const updateMessage = async (req = request, res = response, next) => {
+const updateMessage = async (req, res, next) => {
   const { con } = req;
   const { id: idMensaje } = req.params;
   try {
@@ -203,7 +203,7 @@ const updateMessage = async (req = request, res = response, next) => {
   next();
 }
 
-const deleteMessage = async (req = request, res = response, next) => {
+const deleteMessage = async (req, res, next) => {
   const { con } = req;
   const { id: idMensaje } = req.params;
   try {

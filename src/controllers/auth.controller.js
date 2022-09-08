@@ -10,7 +10,7 @@ const login = async (req, res, next) => {
   let userDB;
   let passwordOk = false;
   try {
-    const [usersRows] = await con.query('SELECT id, email, nombre, apellido, password, token FROM user');
+    const [usersRows] = await con.query('SELECT id, email, nombre, apellido, password FROM user');
     userDB = usersRows[0]; // porque solo hay un usuario
     passwordOk = await bcrypt.compare(receivedPassword, userDB.password);
   } catch (err) {
@@ -24,37 +24,19 @@ const login = async (req, res, next) => {
     return next();
   }
 
-  // usuario válidado
-  let responseToken;
-  if (userDB.token === null) { // si no tiene token en la DB
-    try {
-      responseToken = generateJWT(userDB.id);
-      await con.execute('UPDATE user SET token = ? WHERE id = ?', [responseToken, userDB.id]);
-    } catch (err) {
-      console.log(err);
-      sendServerLoginError(res);
-      return next();
-    }
-  } else { // me fijo si su token todavia anda
-    try {
-      verifyAndGetPayload(userDB.token);
-      // el token que tiene sigue funcionando supuestamente, se lo mando devuelta
-      responseToken = userDB.token;
-    } catch (err) { // su token ya expiro, le tengo que dar otro
-      try {
-        responseToken = generateJWT(userDB.id);
-        await con.execute('UPDATE user SET token = ? WHERE id = ?', [responseToken, userDB.id]);
-      } catch (err) {
-        console.log(err);
-        sendServerLoginError(res);
-        return next();
-      }
-    }
+  // usuario validado
+  try {
+    const token = await generateJWT(userDB.id);
+    const [insertResult] = await con.execute('INSERT INTO user_tokens VALUES (?, ?)', [userDB.id, token]);
+    if (insertResult.affectedRows === 0) throw 'Error al registrar el token en DB';
+
+    const msg = { text: 'Sesión iniciada correctamente', type: 'green' };
+    const { id, email, password, ...userPublicData } = userDB;
+    res.json({ msg, token, user: userPublicData });
+  } catch (err) {
+    console.log(err);
+    sendServerLoginError(res);
   }
-  // Si llegue hasta aca, esta todo correcto
-  const msg = { text: 'Sesión iniciada correctamente', type: 'green' };
-  const { id, email, password, token: tokenDB, ...userPublicData } = userDB;
-  res.json({ msg, token: responseToken, user: userPublicData });
   next();
 };
 const sendServerLoginError = res => {
@@ -65,56 +47,40 @@ const sendServerLoginError = res => {
 const logout = async (req, res, next) => {
   const { con } = req;
   const { token } = req.headers;
-  try {
-    const payload = verifyAndGetPayload(token);
-    const { id: idUser } = payload;
-    try {
-      await con.execute(`INSERT INTO tokens (token) VALUES (?)`, [token]);
-      await deleteUserTokenAndSendLogoutOK(idUser, con, res);
-    } catch (err) {
-      console.log(err);
-      if (err.errno === 1062) { // ya existe ese token en la tabla de tokens
-        const msg = { text: 'Ya se cerro la sesión', type: 'red' };
-        res.status(400).json({ msg });
-      } else {
-        const msg = { text: 'Error al cerrar sesión', type: 'red' };
-        res.status(500).json({ msg });
-      }
-    }
-  } catch (err) {
-    console.log(err);
-    // me fijo si el error es porque ya expiro la sesión
-    if (err.name === 'TokenExpiredError') {
-      try {
-        const { id: idUser } = getPayload(token);
-        const [deleteResult] = await con.execute('DELETE FROM tokens WHERE token = ?', [token]);
-        if (deleteResult.affectedRows !== 0) { // si se borro el token de la tabla de tokens expirados
-          await deleteUserTokenAndSendLogoutOK(idUser, con, res);
-        } else { // sino, ya no existía ese token en la tabla
-          const msg = { text: 'Ya se cerro la sesión', type: 'red' };
-          res.status(400).json({ msg });
-        }
-      } catch (err) { // token erroneo
-        console.log(err);
-        sendInvalidToken(res);
-      }
-    } else { // token erroneo
-      console.log(err);
-      sendInvalidToken(res);
-    }
+
+  const jwtVerication = await verifyAndGetPayload(token);
+  if (!jwtVerication.isValid && jwtVerication.err !== 'TokenExpiredError') {
+    sendInvalidToken(res);
+    return next();
   }
-  next();
-}
-const deleteUserTokenAndSendLogoutOK = async (idUser, con, res) => {
+
   try {
-    await con.execute('UPDATE user SET token = NULL WHERE id = ?', [idUser]);
-    const msg = { text: 'Session cerrada correctamente', type: 'green' };
-    res.json({ msg });
+    const { id: idUser } = getPayload(token);
+    const [userTokens] = await con.execute('SELECT token FROM user_tokens WHERE id_user = ? AND token = ?', [idUser, token]);
+    if (userTokens.length === 0) { // ya no esta registrado ese token
+      sendLogoutOK(res);
+      return next();
+    }
+
+    await con.beginTransaction();
+    if (jwtVerication.isValid) { // si token no es válido es por expiración, no hace falta guardarlo en la tabla de invalid_tokens 
+      const [insertResult] = await con.execute(`INSERT INTO invalid_tokens (token) VALUES (?)`, [token]);
+      if (insertResult.affectedRows === 0) throw 'Error al registrar el token en tabla de invalid_tokens';
+    }
+    await con.execute('DELETE FROM user_tokens WHERE id_user = ? AND token = ?', [idUser, token]);
+    await con.commit();
+    sendLogoutOK(res);
+
   } catch (err) {
     console.log(err);
     const msg = { text: 'Error al cerrar sesión', type: 'red' };
     res.status(500).json({ msg });
   }
+  next();
+}
+const sendLogoutOK = res => {
+  const msg = { text: 'Session cerrada correctamente', type: 'green' };
+  res.json({ msg });
 }
 const sendInvalidToken = res => {
   const msg = { text: 'Token inválido', type: 'red' };

@@ -14,7 +14,10 @@ const app = express();
 appInit(app);
 
 // INITIAL MIDDLEWARES
-app.use(cors());
+app.use(cors({
+  origin: 'https://dreamy-halva-1c18f9.netlify.app',
+  optionsSuccessStatus: 200
+}));
 app.use(startRequest); // configuraciones iniciales
 app.use(express.json()); // si se recibe un JSON, se guarda en el body
 app.use(expressJsonErrorHandler);

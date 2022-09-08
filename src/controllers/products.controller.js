@@ -48,6 +48,7 @@ const getProducts = async (req, res, next) => {
     const offset = (page - 1) * CANTIDAD_POR_PAGINA;
     pGetProductos.push(offset);
     const [productsRows] = await con.execute(qGetProductos, pGetProductos);
+    con.unprepare(qGetProductos);
     const nextPage = (productsRows.length === CANTIDAD_POR_PAGINA + 1) ? true : false;
     if (nextPage) { // si hay mas productos en la siguiente pagina
       productsRows.pop(); // saco ese producto demas que habia traido
@@ -63,6 +64,7 @@ const getProducts = async (req, res, next) => {
       }
       qGetImagenes = qGetImagenes.substring(0, qGetImagenes.length - 1) + ') ORDER BY principal DESC';
       const [imagesRows] = await con.execute(qGetImagenes, pGetImagenes);
+      con.unprepare(qGetImagenes);
       const indexedImages = indexArrayToObjectWhitArray(imagesRows, 'id_producto');
 
       productos = productsRows.map(producto => {

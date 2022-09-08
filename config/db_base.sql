@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 04-09-2022 a las 21:17:50
+-- Tiempo de generación: 08-09-2022 a las 06:04:32
 -- Versión del servidor: 5.7.31
 -- Versión de PHP: 7.4.9
 
@@ -35,7 +35,19 @@ CREATE TABLE IF NOT EXISTS `imagenes` (
   `principal` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `id_producto_ibfk` (`id_producto`)
-) ENGINE=InnoDB AUTO_INCREMENT=496618 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=496623 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `invalid_tokens`
+--
+
+DROP TABLE IF EXISTS `invalid_tokens`;
+CREATE TABLE IF NOT EXISTS `invalid_tokens` (
+  `token` varchar(200) COLLATE utf8_spanish_ci NOT NULL,
+  PRIMARY KEY (`token`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -52,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `mensajes` (
   `fecha` varchar(10) COLLATE utf8_spanish_ci NOT NULL,
   `estado` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -84,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `productos` (
   `descripcion` varchar(255) COLLATE utf8_spanish_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `tipo_ibfk` (`id_tipo`)
-) ENGINE=InnoDB AUTO_INCREMENT=50362 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=50363 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -110,18 +122,6 @@ INSERT INTO `tipos` (`id`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `tokens`
---
-
-DROP TABLE IF EXISTS `tokens`;
-CREATE TABLE IF NOT EXISTS `tokens` (
-  `token` varchar(200) COLLATE utf8_spanish_ci NOT NULL,
-  PRIMARY KEY (`token`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
-
--- --------------------------------------------------------
-
---
 -- Estructura de tabla para la tabla `user`
 --
 
@@ -132,17 +132,29 @@ CREATE TABLE IF NOT EXISTS `user` (
   `nombre` varchar(50) COLLATE utf8_spanish_ci NOT NULL,
   `apellido` varchar(50) COLLATE utf8_spanish_ci NOT NULL,
   `password` varchar(100) COLLATE utf8_spanish_ci NOT NULL,
-  `token` varchar(200) COLLATE utf8_spanish_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email_key` (`email`)
-) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `user`
 --
 
-INSERT INTO `user` (`id`, `email`, `nombre`, `apellido`, `password`, `token`) VALUES
-(1, 'nataliepasteleria.artesanal@gmail.com', 'Natalia', 'Soria', '$2b$10$0O2N9y0NyiVaZI7WavIwv.VOY95QGqSA48PdNRJ5jHjblqSvC6pxC', NULL);
+INSERT INTO `user` (`id`, `email`, `nombre`, `apellido`, `password`) VALUES
+(1, 'nataliepasteleria.artesanal@gmail.com', 'Natalia', 'Soria', '$2b$10$0O2N9y0NyiVaZI7WavIwv.VOY95QGqSA48PdNRJ5jHjblqSvC6pxC');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `user_tokens`
+--
+
+DROP TABLE IF EXISTS `user_tokens`;
+CREATE TABLE IF NOT EXISTS `user_tokens` (
+  `id_user` int(11) NOT NULL,
+  `token` varchar(255) COLLATE utf8_spanish_ci NOT NULL,
+  PRIMARY KEY (`id_user`,`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
 
 --
 -- Restricciones para tablas volcadas
@@ -166,6 +178,12 @@ ALTER TABLE `mensajes_productos`
 --
 ALTER TABLE `productos`
   ADD CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`id_tipo`) REFERENCES `tipos` (`id`) ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `user_tokens`
+--
+ALTER TABLE `user_tokens`
+  ADD CONSTRAINT `user_tokens_ibfk_1` FOREIGN KEY (`id_user`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

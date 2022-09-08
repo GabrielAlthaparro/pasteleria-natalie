@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 //   }
 // });
 
-const sendBudget = async (req = request, res = response, next) => {
+const sendBudget = async (req, res, next) => {
   const { con } = req;
   const { mensaje } = req.body;
   const { messageDB } = req;
@@ -30,7 +30,7 @@ const sendBudget = async (req = request, res = response, next) => {
   const mailOptions = {
     from: `Pasteleria Natalie<${process.env.GMAIL_USER}>`,
     to: messageDB.email,
-    subject: 'Presupuesto de Pasteleria Natalie',
+    subject: 'Respuesta de Pasteleria Natalie',
     text: mensaje
   };
 

@@ -1,4 +1,5 @@
 'use strict';
+const { deleteTmpFilesBuffers } = require("../helpers/files");
 
 const startRequest = async (req, res, next) => {
   try {
@@ -41,7 +42,7 @@ const endRequest = async (req) => {
     console.log('Error al liberar la conexión');
   }
   if (files !== undefined) {
-    const { deleteTmpFilesBuffers } = require("../helpers");
+
     deleteTmpFilesBuffers(files);
   }
 }

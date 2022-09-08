@@ -3,34 +3,31 @@
 const { verifyAndGetPayload } = require("./jwt");
 
 const validateJWT = async (token, { req }) => {
-  // let payload;
-  try {
-    const payload = verifyAndGetPayload(token);
-    // jwt es valido, me fijo si ese jwt sirve todavia (por si cerro la sesión)
-    const { con } = req;
-    try {
-      const [tokensRows] = await con.execute('SELECT * FROM tokens WHERE token = ?', [token]);
-      if (tokensRows.length !== 0) { // si se cerro la sesión con ese token
-        req.customErrors.addSpecialError({ status: 401, text: 'Token inválido, inicie sesión nuevamente', token: null });
-        throw 'El JWT es válido, pero se cerro la sesión con él';
-      } else { // usuario correcto
-        const { id: idUser } = payload;
-        const [usersRows] = await con.execute('SELECT email, nombre, apellido FROM user WHERE id = ?', [idUser]);
-        if (usersRows.length === 0) throw 'Su usuario no se encuentra en la Base de Datos';
-        req.userAuthenticated = usersRows[0];
-      }
-    } catch (err) {
-      if (err.sql === undefined) throw err;
-      req.customErrors.addSpecialError({ status: 500, text: 'Ocurrio un error al obtener la información para validar su usuario' });
-      throw undefined;
-    }
-  } catch (err) { // fallo la verificacion del token
-    console.log(err);
+  const jwtVerication = await verifyAndGetPayload(token);
+  if (!jwtVerication.isValid) {
+    console.log(jwtVerication.err);
     req.customErrors.addSpecialError({ status: 401, text: 'Token inválido, inicie sesión nuevamente', token: null });
     throw undefined;
   }
+  // jwt es valido, me fijo si ese jwt sirve todavia (por si cerro la sesión)
+  const { con } = req;
+  try {
+    const [tokensRows] = await con.execute('SELECT * FROM invalid_tokens WHERE token = ?', [token]);
+    if (tokensRows.length !== 0) { // si se cerro la sesión con ese token
+      req.customErrors.addSpecialError({ status: 401, text: 'Token inválido, inicie sesión nuevamente', token: null });
+      throw 'El JWT es válido, pero se cerro la sesión con él';
+    } else { // usuario correcto
+      const { id: idUser } = jwtVerication.payload;
+      const [usersRows] = await con.execute('SELECT email, nombre, apellido FROM user WHERE id = ?', [idUser]);
+      if (usersRows.length === 0) throw 'Su usuario no se encuentra en la Base de Datos';
+      req.userAuthenticated = usersRows[0];
+    }
+  } catch (err) {
+    if (err.sql === undefined) throw err;
+    req.customErrors.addSpecialError({ status: 500, text: 'Ocurrio un error al obtener la información para validar su usuario' });
+    throw undefined;
+  }
 }
-
 
 const validateExistsIdTipo = async (tipo, { req }) => {
   const { con } = req;

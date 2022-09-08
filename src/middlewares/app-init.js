@@ -1,4 +1,4 @@
-const { verifyAndGetPayload } = require('../helpers');
+const { verifyAndGetPayloadSync } = require('../helpers');
 const { getTotalProducts, getLoggedOutTokens, deleteLoggedOutTokens } = require('../db/querys');
 const pool = require('../db/pool');
 
@@ -12,13 +12,13 @@ const appInit = async app => {
     if (tokens === undefined) return; // ocurrio un error al traer los tokens
 
     tokens = tokens.filter(tokenRow => {
-      try {
-        verifyAndGetPayload(tokenRow.token);
-        // si no tiro error, este token todavia puede ser usado para inicar sesión, no lo borro
+      const jwtVerication = verifyAndGetPayloadSync(tokenRow.token);
+      if (jwtVerication.isValid) {
+        // este token todavia puede ser usado para inicar sesión, no lo borro
         return false;
-      } catch (err) {
-        console.log(err.message);
-        // el jwt ya expiro, no es más valido, asi que lo puedo borrar de DB
+      } else {
+        // el jwt ya expiro, asi que lo puedo borrar de DB
+        console.log(jwtVerication.err);
         return true;
       }
     });

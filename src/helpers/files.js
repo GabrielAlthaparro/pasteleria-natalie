@@ -1,6 +1,7 @@
 'use strict';
 const path = require('path');
 const fs = require('fs');
+const { execAsyncFunction } = require('./promises');
 
 const cloudinary = require('cloudinary').v2;
 cloudinary.config(process.env.CLOUDINARY_URL);
@@ -56,14 +57,8 @@ const deleteTmpFilesBuffers = files => {
   const projectRootDirectory = path.join(__dirname, '../../');
   for (const file of files) {
     const filePath = path.join(projectRootDirectory, file.path);
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (err) {
-      console.log(err);
-      console.log(`Error al borrar el buffer de ${file.originalname}`);
-    }
+    execAsyncFunction(fs.unlink, filePath)
+      .catch(err => console.log(err));
   }
 };
 

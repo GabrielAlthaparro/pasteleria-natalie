@@ -29,7 +29,7 @@ const getLoggedOutTokens = () => {
 
 const deleteLoggedOutTokens = tokens => {
   return new Promise(resolve => {
-    let qDeleteTokens = 'DELETE FROM tokens WHERE token IN (';
+    let qDeleteTokens = 'DELETE FROM invalid_tokens WHERE token IN (';
     const pDeleteTokens = [];
     for (const tokenRow of tokens) {
       qDeleteTokens += '?,';

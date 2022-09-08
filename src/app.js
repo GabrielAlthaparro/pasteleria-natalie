@@ -15,7 +15,7 @@ appInit(app);
 
 // INITIAL MIDDLEWARES
 app.use(cors({
-  origin: 'https://dreamy-halva-1c18f9.netlify.app',
+  origin: ['https://dreamy-halva-1c18f9.netlify.app', 'https://kaleidoscopic-yeot-4fba2d.netlify.app'], // publico, panel
   optionsSuccessStatus: 200
 }));
 app.use(startRequest); // configuraciones iniciales

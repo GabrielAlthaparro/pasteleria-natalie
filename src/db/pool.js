@@ -11,7 +11,7 @@ const config = {
   waitForConnections: true,
   connectionLimit: 10,
 };
-
+/* 
 if (process.env.NODE_ENV === 'production') {
   config.ssl = {
     ca: process.env.SQL_SSL_SERVER_CA,
@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'production') {
     cert: process.env.SQL_SSL_CLIENT_CERTIFICATION
   }
 }
-
+ */
 const pool = mysql.createPool(config);
 
 pool.on('connection', connection => {
